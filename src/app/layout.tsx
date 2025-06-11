@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/sidebar";
-import { Toaster } from "@/components/ui/toaster";
+import CartSidebar from "@/components/layout/CartSidebar";
+import SessionProvider from "@/components/providers/SessionProvider";
+import ConditionalLayout from "@/components/layout/ConditionalLayout";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  title: "Tienda Definitiva",
-  description: "E-commerce moderno con Next.js y TypeScript",
+  title: "Lovilike Personalizados - Productos Personalizados en Hellín",
+  description: "Especialistas en personalización DTF, sublimación y corte láser. Camisetas, regalos y productos únicos en Hellín, Albacete.",
+  keywords: "personalización, DTF, sublimación, láser, camisetas, Hellín, Albacete",
 };
 
 export default function RootLayout({
@@ -18,14 +22,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={inter.className}>
-        <div className="flex h-screen">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto bg-background">
+      <body className={`${inter.className} antialiased`}>
+        <SessionProvider>
+          <ConditionalLayout>
             {children}
-          </main>
-        </div>
-        <Toaster />
+          </ConditionalLayout>
+        </SessionProvider>
       </body>
     </html>
   );
