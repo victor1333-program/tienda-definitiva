@@ -236,20 +236,66 @@ POST   /api/design-variants       # Crear variante
 GET    /api/design-variants/[id]  # Variante específica
 ```
 
-## 🚀 Despliegue
+## 🚀 Despliegue y Configuración de Producción
 
-### Configuración de Producción
+### Configuración Completa en Servidor
+El proyecto está configurado para funcionar automáticamente con:
+
+#### Dominios Configurados
+- **https://lovilike.com** - Dominio principal
+- **https://lovilike.es** - Dominio secundario
+- Ambos dominios con certificados SSL automáticos (Let's Encrypt)
+
+#### Sistema de Auto-inicio
+- **PM2** para gestión de procesos con clustering
+- **Systemd** para inicio automático del servidor
+- **Scripts de monitoreo** con auto-recuperación cada 5 minutos
+- **Nginx** como reverse proxy con configuración SSL
+
+#### Configuración de Producción
 ```bash
 # Construir aplicación
 npm run build
 
-# Configurar variables de entorno de producción
-# Migrar base de datos
-npx prisma migrate deploy
+# Iniciar con PM2 (auto-configurado)
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup
 
-# Iniciar servidor
-npm run start
+# Verificar estado
+pm2 status
+pm2 logs tienda-definitiva
 ```
+
+#### Scripts de Gestión
+```bash
+# Auto-inicio completo
+./auto-start.sh
+
+# Configuración SSL automática
+./setup-ssl.sh
+
+# Monitoreo y recuperación
+./scripts/monitor-and-recover.sh
+```
+
+### Arquitectura de Servidor
+```
+Internet → Nginx (puerto 80/443) → Next.js App (puerto 3000)
+                ↓
+        Certificados SSL automáticos
+                ↓
+        PM2 Process Manager (2 instancias)
+                ↓
+        PostgreSQL Database
+```
+
+### Nginx - Reverse Proxy
+- Configuración automática para ambos dominios
+- Redirección HTTP → HTTPS
+- Compresión gzip habilitada
+- Headers de seguridad configurados
+- Proxy para archivos estáticos de Next.js
 
 ### Docker
 ```bash
@@ -260,8 +306,11 @@ docker-compose -f docker-compose.dev.yml up
 docker-compose -f docker-compose.prod.yml up
 ```
 
-### Nginx
-Configuración incluida en `/nginx/` para reverse proxy y SSL.
+### Monitoreo y Mantenimiento
+- **Health checks** cada 5 minutos
+- **Auto-restart** en caso de fallos
+- **Logs centralizados** con PM2
+- **Renovación automática** de certificados SSL
 
 ## 🧪 Testing
 
@@ -308,6 +357,8 @@ Para soporte técnico o consultas, contactar al equipo de desarrollo.
 
 ---
 
-**Versión**: 0.1.0  
-**Última actualización**: Octubre 2024  
-**Tecnología principal**: Next.js 15 + TypeScript + Prisma
+**Versión**: 1.0.0  
+**Última actualización**: 9 de Octubre 2025 - 14:30 UTC  
+**Estado**: Producción - Online en https://lovilike.com y https://lovilike.es  
+**Tecnología principal**: Next.js 15 + TypeScript + Prisma + PM2 + Nginx  
+**Infraestructura**: Auto-startup, SSL automático, Monitoreo 24/7

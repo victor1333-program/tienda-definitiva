@@ -1,151 +1,90 @@
 #!/bin/bash
-# Script para configurar SSL con Let's Encrypt para Lovilike.es
+
+# Script para configurar SSL con Let's Encrypt para los dominios
 
 set -e
 
-echo "🔒 Configurando SSL para Lovilike.es..."
+echo "🔐 Configurando SSL con Let's Encrypt para los dominios..."
 
-# Colores para output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
+# Función para log con timestamp
 log() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
-error() {
-    echo -e "${RED}[ERROR] $1${NC}"
-    exit 1
-}
+# Verificar que los dominios apunten al servidor
+log "🔍 Verificando que los dominios apunten a este servidor..."
 
-warning() {
-    echo -e "${YELLOW}[WARNING] $1${NC}"
-}
+# Obtener IP IPv4 del servidor
+SERVER_IP=$(curl -s -4 ifconfig.me || curl -s -4 ipinfo.io/ip || curl -s -4 icanhazip.com)
+log "📍 IP del servidor: $SERVER_IP"
 
-# Configuración
-DOMAIN="lovilike.es"
-WWW_DOMAIN="www.lovilike.es"
-EMAIL="admin@lovilike.es"  # Cambia por tu email real
-
-log "Configurando SSL para dominios: $DOMAIN y $WWW_DOMAIN"
-
-# Verificar que los servicios están corriendo
-if ! docker-compose -f docker-compose.prod.yml ps | grep -q "Up"; then
-    error "Los servicios no están corriendo. Ejecuta primero ./deploy.sh"
-fi
-
-# Crear directorio para certificados
-mkdir -p certbot/conf
-mkdir -p certbot/www
-
-# Generar certificados DH parameters (opcional pero recomendado)
-log "Generando parámetros DH (esto puede tomar varios minutos)..."
-if [ ! -f "nginx/dhparam.pem" ]; then
-    docker run --rm -v $(pwd)/nginx:/output alpine/openssl dhparam -out /output/dhparam.pem 2048
-    log "Parámetros DH generados ✓"
+# Verificar DNS de lovilike.com
+log "🔍 Verificando DNS de lovilike.com..."
+COM_IP=$(nslookup lovilike.com 8.8.8.8 | grep -A1 "Name:" | tail -1 | awk '{print $2}' || echo "")
+if [[ "$COM_IP" == "$SERVER_IP" ]]; then
+    log "✅ lovilike.com apunta correctamente a $SERVER_IP"
+    SETUP_COM=true
 else
-    log "Parámetros DH ya existen ✓"
+    log "⚠️  lovilike.com no apunta a este servidor (apunta a: $COM_IP)"
+    SETUP_COM=false
 fi
 
-# Función para verificar si el dominio apunta al servidor
-check_domain() {
-    local domain=$1
-    log "Verificando configuración DNS para $domain..."
-    
-    # Obtener IP del servidor
-    SERVER_IP=$(curl -s http://ipv4.icanhazip.com/ || curl -s http://ifconfig.me/)
-    
-    # Obtener IP del dominio
-    DOMAIN_IP=$(dig +short $domain | tail -n1)
-    
-    if [ "$SERVER_IP" = "$DOMAIN_IP" ]; then
-        log "DNS configurado correctamente para $domain ✓"
-        return 0
+# Verificar DNS de lovilike.es
+log "🔍 Verificando DNS de lovilike.es..."
+ES_IP=$(nslookup lovilike.es 8.8.8.8 | grep -A1 "Name:" | tail -1 | awk '{print $2}' || echo "")
+if [[ "$ES_IP" == "$SERVER_IP" ]]; then
+    log "✅ lovilike.es apunta correctamente a $SERVER_IP"
+    SETUP_ES=true
+else
+    log "⚠️  lovilike.es no apunta a este servidor (apunta a: $ES_IP)"
+    SETUP_ES=false
+fi
+
+# Configurar SSL para dominios que apunten correctamente
+if [[ "$SETUP_COM" == true ]]; then
+    log "🔐 Configurando SSL para lovilike.com..."
+    certbot --nginx -d lovilike.com -d www.lovilike.com --non-interactive --agree-tos --email admin@lovilike.com --redirect
+    if [[ $? -eq 0 ]]; then
+        log "✅ SSL configurado exitosamente para lovilike.com"
     else
-        warning "DNS no configurado correctamente para $domain"
-        warning "IP del servidor: $SERVER_IP"
-        warning "IP del dominio: $DOMAIN_IP"
-        return 1
-    fi
-}
-
-# Verificar configuración DNS
-if check_domain $DOMAIN && check_domain $WWW_DOMAIN; then
-    log "Configuración DNS verificada ✓"
-else
-    warning "Configuración DNS no es correcta. Verifica que los dominios apunten a este servidor."
-    read -p "¿Quieres continuar de todos modos? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        error "Configuración SSL cancelada"
+        log "❌ Error configurando SSL para lovilike.com"
     fi
 fi
 
-# Obtener certificados SSL
-log "Obteniendo certificados SSL de Let's Encrypt..."
+if [[ "$SETUP_ES" == true ]]; then
+    log "🔐 Configurando SSL para lovilike.es..."
+    certbot --nginx -d lovilike.es -d www.lovilike.es --non-interactive --agree-tos --email admin@lovilike.es --redirect
+    if [[ $? -eq 0 ]]; then
+        log "✅ SSL configurado exitosamente para lovilike.es"
+    else
+        log "❌ Error configurando SSL para lovilike.es"
+    fi
+fi
 
-# Usar staging primero para pruebas (opcional)
-read -p "¿Usar servidor de staging de Let's Encrypt para pruebas? (y/N): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    STAGING_FLAG="--staging"
-    warning "Usando servidor de staging - los certificados NO serán válidos para producción"
+# Configurar renovación automática
+log "🔄 Configurando renovación automática de SSL..."
+systemctl enable certbot.timer
+systemctl start certbot.timer
+
+# Verificar que el timer esté activo
+if systemctl is-active --quiet certbot.timer; then
+    log "✅ Timer de renovación automática activado"
 else
-    STAGING_FLAG=""
-    log "Usando servidor de producción de Let's Encrypt"
+    log "⚠️  Error activando timer de renovación automática"
 fi
 
-# Obtener certificados
-docker-compose -f docker-compose.prod.yml run --rm certbot \
-    certonly --webroot \
-    --webroot-path /var/www/certbot \
-    --email $EMAIL \
-    --agree-tos \
-    --no-eff-email \
-    $STAGING_FLAG \
-    -d $DOMAIN \
-    -d $WWW_DOMAIN
+# Probar renovación
+log "🧪 Probando renovación de certificados..."
+certbot renew --dry-run
 
-if [ $? -eq 0 ]; then
-    log "Certificados SSL obtenidos exitosamente ✓"
-else
-    error "Fallo al obtener certificados SSL"
-fi
+# Recargar Nginx
+log "🔄 Recargando configuración de Nginx..."
+nginx -t && systemctl reload nginx
 
-# Habilitar configuración SSL en nginx
-log "Habilitando configuración SSL en Nginx..."
+log "✅ Configuración SSL completada!"
+log "📋 Resumen:"
+log "   - lovilike.com: $([ "$SETUP_COM" == true ] && echo "SSL configurado" || echo "Pendiente - verificar DNS")"
+log "   - lovilike.es: $([ "$SETUP_ES" == true ] && echo "SSL configurado" || echo "Pendiente - verificar DNS")"
+log "   - Renovación automática: Activada"
 
-# Descomentar líneas SSL en nginx.conf si están comentadas
-if grep -q "#ssl_dhparam" nginx/conf.d/ssl.conf; then
-    sed -i 's/#ssl_dhparam/ssl_dhparam/' nginx/conf.d/ssl.conf
-    log "Configuración DH habilitada ✓"
-fi
-
-# Reiniciar nginx para aplicar certificados
-log "Reiniciando Nginx..."
-docker-compose -f docker-compose.prod.yml restart nginx
-
-sleep 5
-
-# Verificar que SSL está funcionando
-log "Verificando configuración SSL..."
-if curl -s -I https://$WWW_DOMAIN | grep -q "HTTP/"; then
-    log "SSL configurado correctamente ✓"
-else
-    warning "SSL podría no estar funcionando correctamente"
-fi
-
-# Mostrar información de certificados
-log "Información de certificados:"
-docker-compose -f docker-compose.prod.yml run --rm certbot certificates
-
-log "🎉 ¡SSL configurado exitosamente!"
-log "Tu sitio web ahora debería estar disponible en:"
-log "  https://$DOMAIN"
-log "  https://$WWW_DOMAIN"
-log ""
-log "Los certificados se renovarán automáticamente."
-log "Para forzar una renovación:"
-log "  docker-compose -f docker-compose.prod.yml run --rm certbot renew"
+echo "🎉 ¡SSL configurado correctamente!"
