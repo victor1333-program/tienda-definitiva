@@ -1,0 +1,10 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#f3f4f6"/>
+  <rect x="150" y="80" width="100" height="240" fill="#ffffff" stroke="#d1d5db" stroke-width="2" rx="5"/>
+  <text x="200" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#6b7280">✝️</text>
+  <text x="200" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6b7280">Mi Primera</text>
+  <text x="200" y="170" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6b7280">Comunión</text>
+  <rect x="160" y="200" width="80" height="2" fill="#f59e0b"/>
+  <text x="200" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6b7280">Marcapáginas Comunión</text>
+  <text x="200" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af">Imagen de muestra</text>
+</svg>

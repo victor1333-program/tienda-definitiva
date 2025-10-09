@@ -1,0 +1,378 @@
+@import "tailwindcss";
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 22 93% 52%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 144 25% 65%;
+  --secondary-foreground: 222.2 84% 4.9%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 222.2 84% 4.9%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 222.2 84% 4.9%;
+  --chart-1: 12 76% 61%;
+  --chart-2: 173 58% 39%;
+  --chart-3: 197 37% 24%;
+  --chart-4: 43 74% 66%;
+  --chart-5: 27 87% 67%;
+  --radius: 0.5rem;
+  --initial-color-mode: light;
+}
+
+.dark {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 84% 4.9%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 212.7 26.8% 83.9%;
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* Custom Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes float-delay {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(249, 115, 22, 0.6);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: float-delay 6s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Utility Classes */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Glass Effect */
+.glass-effect {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Modern Modal Overlays - Override any dark backgrounds */
+.fixed.inset-0[class*="bg-black"] {
+  background-color: rgb(0 0 0 / 0.35) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* Specific override for very dark overlays */
+.fixed.inset-0.bg-black.bg-opacity-80,
+.fixed.inset-0.bg-black.bg-opacity-75,
+.fixed.inset-0.bg-black.bg-opacity-70,
+.fixed.inset-0.bg-black.bg-opacity-60 {
+  background-color: rgb(0 0 0 / 0.35) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* Admin Layout Optimizations */
+.admin-layout {
+  overflow-x: visible;
+}
+
+.admin-content {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+.admin-content > div {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+.admin-content .space-y-4,
+.admin-content .space-y-6,
+.admin-content .grid {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+/* Asegurar que los contenedores principales se extiendan completamente */
+.admin-content .container,
+.admin-content .max-w-7xl,
+.admin-content .max-w-6xl,
+.admin-content .max-w-5xl,
+.admin-content .max-w-4xl,
+.admin-content .max-w-3xl,
+.admin-content .max-w-2xl,
+.admin-content .max-w-xl,
+.admin-content .max-w-lg,
+.admin-content .max-w-md,
+.admin-content .max-w-sm {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+/* Forzar que el contenido del main se extienda completamente */
+.admin-content {
+  width: calc(100vw - 14rem) !important;
+  max-width: none !important;
+}
+
+.admin-content > div {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Table Responsive Optimizations */
+.admin-table {
+  min-width: 100%;
+}
+
+.admin-table th,
+.admin-table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Compact card styling for admin */
+.admin-card {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+.admin-card-header {
+  padding: 1rem;
+}
+
+.admin-card-content {
+  padding: 1rem;
+}
+
+/* Mobile responsive improvements for admin */
+@media (max-width: 640px) {
+  .admin-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .admin-content {
+    margin-left: 0 !important;
+  }
+}
+
+/* Accessibility utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.not-sr-only {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Focus styles */
+.focus-visible:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Enhanced focus styles for better visibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #FB6D0E;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px rgba(251, 109, 14, 0.2);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --tw-text-opacity: 1;
+    --tw-bg-opacity: 1;
+  }
+  
+  .text-gray-500 {
+    color: #000000;
+  }
+  
+  .text-gray-400 {
+    color: #000000;
+  }
+  
+  .bg-gray-100 {
+    background-color: #ffffff;
+    border: 1px solid #000000;
+  }
+  
+  /* Ensure sufficient contrast for interactive elements */
+  button,
+  a {
+    border: 1px solid currentColor;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Disable hover effects that use transforms */
+  .hover\:scale-105:hover,
+  .hover\:scale-110:hover,
+  .group-hover\:scale-110,
+  .hover\:-translate-y-1:hover,
+  .hover\:-translate-y-2:hover {
+    transform: none !important;
+  }
+}
+
+/* Print styles for accessibility */
+@media print {
+  .sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+  
+  /* Hide decorative elements in print */
+  .print\:hidden {
+    display: none !important;
+  }
+}

@@ -1,0 +1,10 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#f3f4f6"/>
+  <rect x="100" y="120" width="200" height="180" fill="#fecaca" rx="20"/>
+  <rect x="180" y="80" width="40" height="60" fill="#fecaca" rx="10"/>
+  <rect x="120" y="100" width="160" height="20" fill="#f87171" rx="10"/>
+  <text x="200" y="210" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#ffffff">👶</text>
+  <text x="200" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#ffffff">Baby</text>
+  <text x="200" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6b7280">Camiseta Baby Shower</text>
+  <text x="200" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af">Imagen de muestra</text>
+</svg>

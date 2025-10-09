@@ -1,0 +1,11 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#f3f4f6"/>
+  <rect x="80" y="120" width="240" height="200" fill="#f3f4f6" stroke="#d1d5db" stroke-width="2" rx="10"/>
+  <rect x="160" y="100" width="20" height="40" fill="#d1d5db" rx="5"/>
+  <rect x="220" y="100" width="20" height="40" fill="#d1d5db" rx="5"/>
+  <path d="M 160 120 Q 200 100 240 120" stroke="#d1d5db" stroke-width="3" fill="none"/>
+  <circle cx="200" cy="200" r="30" fill="#10b981"/>
+  <text x="200" y="210" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#ffffff">ECO</text>
+  <text x="200" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6b7280">Bolsa de Tela</text>
+  <text x="200" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af">Imagen de muestra</text>
+</svg>

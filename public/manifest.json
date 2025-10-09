@@ -1,0 +1,78 @@
+{
+  "name": "Lovilike Personalizados",
+  "short_name": "Lovilike",
+  "description": "Los mejores productos personalizados en Hellín, Albacete. DTF, sublimación y corte láser.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#FB6D0E",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "es",
+  "categories": ["shopping", "business"],
+  "icons": [
+    {
+      "src": "/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Productos",
+      "short_name": "Productos",
+      "description": "Ver catálogo de productos",
+      "url": "/productos",
+      "icons": [{ "src": "/icons/shortcut-products.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Personalizar",
+      "short_name": "Personalizar",
+      "description": "Crear diseño personalizado",
+      "url": "/personalizador",
+      "icons": [{ "src": "/icons/shortcut-customize.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Carrito",
+      "short_name": "Carrito",
+      "description": "Ver carrito de compras",
+      "url": "/carrito",
+      "icons": [{ "src": "/icons/shortcut-cart.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile-1.png",
+      "sizes": "375x812",
+      "type": "image/png",
+      "platform": "mobile",
+      "label": "Página principal en móvil"
+    },
+    {
+      "src": "/screenshots/desktop-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Página principal en escritorio"
+    }
+  ]
+}

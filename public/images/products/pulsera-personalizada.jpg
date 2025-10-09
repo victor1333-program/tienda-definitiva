@@ -1,0 +1,10 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#f3f4f6"/>
+  <ellipse cx="200" cy="200" rx="150" ry="30" fill="#e5e7eb" stroke="#d1d5db" stroke-width="2"/>
+  <circle cx="200" cy="200" r="8" fill="#f59e0b"/>
+  <circle cx="160" cy="195" r="6" fill="#10b981"/>
+  <circle cx="240" cy="195" r="6" fill="#ef4444"/>
+  <text x="200" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6b7280">Pulsera</text>
+  <text x="200" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6b7280">Personalizada</text>
+  <text x="200" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af">Imagen de muestra</text>
+</svg>

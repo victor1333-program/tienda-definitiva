@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: lovilike_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lovilike_production
+      POSTGRES_USER: lovilike_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    ports:
+      - "5432:5432"
+    networks:
+      - lovilike_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lovilike_user -d lovilike_production"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis para caché y sesiones
+  redis:
+    image: redis:7-alpine
+    container_name: lovilike_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - lovilike_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Aplicación Next.js
+  lovilike_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lovilike_nextjs
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://lovilike_user:${DB_PASSWORD}@postgres:5432/lovilike_production?schema=public
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - NEXTAUTH_URL=https://www.lovilike.es
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lovilike_network
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx como proxy reverso
+  nginx:
+    image: nginx:alpine
+    container_name: lovilike_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - lovilike_app
+    networks:
+      - lovilike_network
+
+  # Certbot para SSL
+  certbot:
+    image: certbot/certbot
+    container_name: lovilike_certbot
+    restart: "no"
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  lovilike_network:
+    driver: bridge

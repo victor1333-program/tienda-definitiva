@@ -1,0 +1,10 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#f3f4f6"/>
+  <rect x="120" y="160" width="160" height="120" fill="#f59e0b" rx="5"/>
+  <rect x="190" y="120" width="20" height="160" fill="#dc2626"/>
+  <rect x="110" y="190" width="180" height="20" fill="#dc2626"/>
+  <polygon points="190,120 210,120 200,100" fill="#dc2626"/>
+  <polygon points="180,100 220,100 200,80" fill="#dc2626"/>
+  <text x="200" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6b7280">Caja Regalo</text>
+  <text x="200" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af">Imagen de muestra</text>
+</svg>

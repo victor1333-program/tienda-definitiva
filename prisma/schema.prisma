@@ -1,0 +1,2457 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model User {
+  id                     String                      @id @default(cuid())
+  name                   String?
+  email                  String                      @unique
+  emailVerified          DateTime?
+  image                  String?
+  role                   Role                        @default(CUSTOMER)
+  phone                  String?
+  password               String?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  accounts               Account[]
+  addresses              Address[]
+  brandStockMovements    BrandStockMovement[]
+  customerDesigns        CustomerDesign[]
+  financialTransactions  FinancialTransaction[]
+  assignedTasks          LoviBoxProductionTask[]     @relation("TaskAssignee")
+  taskCreations          LoviBoxProductionTask[]     @relation("TaskCreator")
+  loviboxSubscriptions   LoviBoxSubscription[]       @relation("CustomerSubscriptions")
+  createdBoxTemplates    LoviBoxTemplate[]           @relation("BoxTemplateCreator")
+  materialMovements      MaterialMovement[]
+  notifications          Notification[]
+  orders                 Order[]
+  imageUsages            PersonalizationImageUsage[]
+  shapeUsages            PersonalizationShapeUsage[]
+  sessions               Session[]
+  subscriptions          UserSubscription[]
+  createdDesignTemplates ZakekeTemplate[]            @relation("DesignTemplateCreator")
+  createdDesignVariants  ProductDesignVariant[]      @relation("CreatedDesignVariants")
+  createdEmailTemplates  EmailTemplate[]             @relation("CreatedEmailTemplates")
+  editedEmailTemplates   EmailTemplate[]             @relation("EditedEmailTemplates")
+
+  @@index([email])
+  @@index([role])
+  @@index([createdAt])
+  @@index([role, createdAt])
+  @@index([emailVerified])
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Address {
+  id         String  @id @default(cuid())
+  userId     String
+  name       String
+  street     String
+  city       String
+  state      String
+  postalCode String
+  country    String  @default("ES")
+  isDefault  Boolean @default(false)
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders     Order[]
+
+  @@map("addresses")
+}
+
+model Category {
+  id                String            @id @default(cuid())
+  name              String
+  slug              String            @unique
+  description       String?
+  image             String?
+  icon              String?
+  isActive          Boolean           @default(true)
+  sortOrder         Int               @default(0)
+  isSystem          Boolean           @default(false)
+  categoryType      CategoryType      @default(REGULAR)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  menuItems         MenuItem[]
+  productCategories ProductCategory[]
+  designCategories  ProductDesignCategory[] @relation("DesignCategories")
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([categoryType])
+  @@index([sortOrder])
+  @@index([isActive, sortOrder])
+  @@index([categoryType, isActive])
+  @@map("categories")
+}
+
+model ProductCategory {
+  id         String   @id @default(cuid())
+  productId  String
+  categoryId String
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, categoryId])
+  @@index([productId])
+  @@index([categoryId])
+  @@index([isPrimary])
+  @@map("product_categories")
+}
+
+model ProductSupplier {
+  id         String   @id @default(cuid())
+  productId  String
+  supplierId String
+  isPrimary  Boolean  @default(false)
+  cost       Decimal?                     @db.Decimal(10,2)
+  minOrder   Int?
+  leadTime   Int?
+  createdAt  DateTime @default(now())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, supplierId])
+  @@map("product_suppliers")
+}
+
+model Product {
+  id                        String                       @id @default(cuid())
+  name                      String
+  slug                      String                       @unique
+  sku                       String?                      @unique
+  description               String?
+  basePrice                 Decimal                      @db.Decimal(10,2)
+  comparePrice              Decimal?                     @db.Decimal(10,2)
+  costPrice                 Decimal?                     @db.Decimal(10,2)
+  images                    String                       @default("[]")
+  videos                    String                       @default("[]")
+  documents                 String                       @default("[]")
+  hasQuantityPricing        Boolean                      @default(false)
+  quantityPrices            String                       @default("[]")
+  isActive                  Boolean                      @default(true)
+  featured                  Boolean                      @default(false)
+  topSelling                Boolean                      @default(false)
+  sortOrder                 Int                          @default(0)
+  materialType              String?
+  metaTitle                 String?
+  metaDescription           String?
+  createdAt                 DateTime                     @default(now())
+  updatedAt                 DateTime                     @updatedAt
+  brand                     String?
+  directStock               Int                          @default(0)
+  minStock                  Int                          @default(0)
+  stock                     Int                          @default(0)
+  supplier                  String?
+  trackInventory            Boolean                      @default(true)
+  isPersonalizable          Boolean                      @default(false)
+  personalizationData       String?
+  personalizationSettings   String?
+  variantCombinationsConfig String?
+  variantGroupsConfig       String?
+  hasDesignVariants         Boolean                      @default(false)
+  defaultDesignVariantId    String?
+  customerDesigns           CustomerDesign[]
+  boxProducts               LoviBoxProduct[]
+  menuItems                 MenuItem[]
+  orderItems                OrderItem[]
+  pricingRules              PersonalizationPricingRule[]
+  categories                ProductCategory[]
+  sides                     ProductSide[]                @relation("ProductSides")
+  suppliers                 ProductSupplier[]
+  variants                  ProductVariant[]
+  workshopProcesses         WorkshopProcess[]
+  linkedImages              PersonalizationImageProductLink[]
+  linkedImageCategories     PersonalizationImageCategoryProductLink[]
+  linkedImageMacroCategories PersonalizationImageMacroCategoryProductLink[]
+  designVariants            ProductDesignVariant[]       @relation("ProductDesignVariants")
+  productImages             ProductImage[]               @relation("ProductImages")
+  productVideos             ProductVideo[]               @relation("ProductVideos") 
+  productDocuments          ProductDocument[]            @relation("ProductDocuments")
+  quantityPricing           ProductQuantityPrice[]       @relation("ProductQuantityPrices")
+
+  @@index([isActive])
+  @@index([slug])
+  @@index([sku])
+  @@index([featured])
+  @@index([topSelling])
+  @@index([isActive, featured])
+  @@index([isActive, topSelling])
+  @@index([basePrice, isActive])
+  @@index([createdAt, isActive])
+  @@index([isPersonalizable, isActive])
+  @@index([brand, isActive])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  altText   String?
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  product   Product  @relation("ProductImages", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([isPrimary])
+  @@index([sortOrder])
+  @@map("product_images")
+}
+
+model ProductVideo {
+  id          String   @id @default(cuid())
+  productId   String
+  url         String
+  title       String?
+  description String?
+  sortOrder   Int      @default(0)
+  duration    Int?
+  createdAt   DateTime @default(now())
+  product     Product  @relation("ProductVideos", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([sortOrder])
+  @@map("product_videos")
+}
+
+model ProductDocument {
+  id          String   @id @default(cuid())
+  productId   String
+  url         String
+  title       String
+  description String?
+  fileType    String
+  fileSize    Int?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  product     Product  @relation("ProductDocuments", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([fileType])
+  @@index([sortOrder])
+  @@map("product_documents")
+}
+
+model ProductQuantityPrice {
+  id           String  @id @default(cuid())
+  productId    String
+  minQuantity  Int
+  maxQuantity  Int?
+  pricePerUnit Decimal @db.Decimal(10,2)
+  discountType String  @default("PERCENTAGE") // PERCENTAGE, FIXED_AMOUNT
+  isActive     Boolean @default(true)
+  createdAt    DateTime @default(now())
+  product      Product @relation("ProductQuantityPrices", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([minQuantity])
+  @@index([isActive])
+  @@map("product_quantity_prices")
+}
+
+model ProductVariant {
+  id                String              @id @default(cuid())
+  sku               String              @unique
+  size              String?
+  colorName         String?
+  colorHex          String?
+  colorDisplay      String?
+  material          String?
+  stock             Int                 @default(0)
+  price             Decimal?                 @db.Decimal(10,2)
+  isActive          Boolean             @default(true)
+  productId         String
+  height            Float?
+  images            String              @default("[]")
+  width             Float?
+  brandStocks       BrandStock[]
+  demandForecasts   DemandForecast[]
+  inventory         InventoryMovement[]
+  orderItems        OrderItem[]
+  product           Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stockAlerts       StockAlert[]
+  stockReservations StockReservation[]
+  variantSideImages VariantSideImage[]
+  variantImages     ProductVariantImage[] @relation("VariantImages")
+
+  @@index([productId])
+  @@index([sku])
+  @@index([isActive])
+  @@index([productId, isActive])
+  @@index([price, isActive])
+  @@index([stock, isActive])
+  @@map("product_variants")
+}
+
+model ProductVariantImage {
+  id        String         @id @default(cuid())
+  variantId String
+  url       String
+  altText   String?
+  sortOrder Int            @default(0)
+  isPrimary Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  variant   ProductVariant @relation("VariantImages", fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId])
+  @@index([isPrimary])
+  @@index([sortOrder])
+  @@map("product_variant_images")
+}
+
+model InventoryMovement {
+  id        String         @id @default(cuid())
+  variantId String
+  type      MovementType
+  quantity  Int
+  reason    String?
+  userId    String?
+  createdAt DateTime       @default(now())
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@map("inventory_movements")
+}
+
+model Supplier {
+  id               String            @id @default(cuid())
+  name             String
+  contactName      String?
+  email            String?
+  phone            String?
+  address          String?
+  website          String?
+  notes            String?
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  brandStocks      BrandStock[]
+  materials        Material[]
+  productSuppliers ProductSupplier[]
+  purchaseOrders   PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+model Material {
+  id                  String             @id @default(cuid())
+  name                String
+  description         String?
+  sku                 String             @unique
+  unit                MaterialUnit
+  currentStock        Decimal            @default(0) @db.Decimal(10,2)
+  minimumStock        Decimal            @default(0) @db.Decimal(10,2)
+  maximumStock        Decimal?           @db.Decimal(10,2)
+  costPerUnit         Decimal            @default(0) @db.Decimal(10,2)
+  supplierId          String?
+  location            String?
+  category            MaterialCategory
+  isActive            Boolean            @default(true)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  demandForecasts     DemandForecast[]
+  movements           MaterialMovement[]
+  supplier            Supplier?          @relation(fields: [supplierId], references: [id])
+  processRequirements ProcessMaterial[]
+  stockAlerts         StockAlert[]
+
+  @@map("materials")
+}
+
+model MaterialMovement {
+  id         String               @id @default(cuid())
+  materialId String
+  type       MaterialMovementType
+  quantity   Decimal                      @db.Decimal(10,2)
+  unitCost   Decimal?                     @db.Decimal(10,2)
+  reason     String?
+  userId     String?
+  createdAt  DateTime             @default(now())
+  material   Material             @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user       User?                @relation(fields: [userId], references: [id])
+
+  @@map("material_movements")
+}
+
+model PurchaseOrder {
+  id           String              @id @default(cuid())
+  orderNumber  String              @unique
+  supplierId   String
+  status       PurchaseOrderStatus @default(PENDING)
+  totalAmount  Decimal             @default(0) @db.Decimal(10,2)
+  notes        String?
+  expectedDate DateTime?
+  receivedDate DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  supplier     Supplier            @relation(fields: [supplierId], references: [id])
+
+  @@map("purchase_orders")
+}
+
+model DemandForecast {
+  id              String          @id @default(cuid())
+  materialId      String?
+  variantId       String?
+  predictedDemand Decimal                      @db.Decimal(10,2)
+  confidence      Decimal                      @db.Decimal(5,4)
+  period          String
+  algorithm       String          @default("moving_average")
+  createdAt       DateTime        @default(now())
+  material        Material?       @relation(fields: [materialId], references: [id])
+  variant         ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@map("demand_forecasts")
+}
+
+model StockAlert {
+  id           String          @id @default(cuid())
+  type         StockAlertType
+  materialId   String?
+  variantId    String?
+  threshold    Decimal                      @db.Decimal(10,2)
+  currentStock Decimal                      @db.Decimal(10,2)
+  message      String
+  isResolved   Boolean         @default(false)
+  createdAt    DateTime        @default(now())
+  resolvedAt   DateTime?
+  material     Material?       @relation(fields: [materialId], references: [id])
+  variant      ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@map("stock_alerts")
+}
+
+model Order {
+  id                      String                      @id @default(cuid())
+  orderNumber             String                      @unique
+  status                  OrderStatus                 @default(PENDING)
+  totalAmount             Decimal                     @db.Decimal(10,2)
+  shippingCost            Decimal                     @db.Decimal(10,2) @default(0)
+  taxAmount               Decimal                     @db.Decimal(10,2) @default(0)
+  customerEmail           String
+  customerName            String
+  customerPhone           String?
+  shippingMethod          String
+  shippingAddress         Json?
+  trackingNumber          String?
+  paymentMethod           String
+  paymentStatus           PaymentStatus               @default(PENDING)
+  stripePaymentId         String?
+  customerNotes           String?
+  adminNotes              String?
+  userId                  String?
+  addressId               String?
+  createdAt               DateTime                    @default(now())
+  updatedAt               DateTime                    @updatedAt
+  boardNotes              String?
+  estimatedCompletionDate DateTime?
+  orderSource             OrderSource                 @default(ONLINE)
+  priority                OrderPriority               @default(MEDIUM)
+  productionCompletedAt   DateTime?
+  productionStartedAt     DateTime?
+  financialTransactions   FinancialTransaction[]
+  invoices                Invoice[]
+  orderItems              OrderItem[]
+  address                 Address?                    @relation(fields: [addressId], references: [id])
+  user                    User?                       @relation(fields: [userId], references: [id])
+  imageUsages             PersonalizationImageUsage[]
+  shapeUsages             PersonalizationShapeUsage[]
+
+  @@index([orderNumber])
+  @@index([status])
+  @@index([userId])
+  @@index([customerEmail])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([userId, status])
+  @@index([paymentStatus, createdAt])
+  @@index([totalAmount, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                String                @id @default(cuid())
+  quantity          Int
+  unitPrice         Decimal               @db.Decimal(10,2)
+  totalPrice        Decimal               @db.Decimal(10,2)
+  productionNotes   String?
+  productionStatus  ProductionStatus      @default(PENDING)
+  orderId           String
+  productId         String
+  variantId         String?
+  designVariantId   String?
+  designElements    DesignElement[]       @relation("OrderItemDesignElements")
+  allocations       OrderItemAllocation[]
+  order             Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product           Product               @relation(fields: [productId], references: [id])
+  variant           ProductVariant?       @relation(fields: [variantId], references: [id])
+  designVariant     ProductDesignVariant? @relation("DesignVariantOrders", fields: [designVariantId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([productionStatus])
+  @@index([orderId, productionStatus])
+  @@map("order_items")
+}
+
+model Invoice {
+  id                    String                 @id @default(cuid())
+  invoiceNumber         String                 @unique
+  status                InvoiceStatus          @default(PENDING)
+  subtotal              Float
+  taxRate               Float                  @default(0.21)
+  taxAmount             Float
+  totalAmount           Float
+  issueDate             DateTime               @default(now())
+  dueDate               DateTime
+  paidDate              DateTime?
+  customerName          String
+  customerEmail         String
+  customerPhone         String?
+  customerTaxId         String?
+  billingAddress        Json?
+  companyName           String
+  companyAddress        Json
+  companyTaxId          String
+  companyPhone          String?
+  companyEmail          String?
+  lineItems             Json
+  notes                 String?
+  paymentTerms          String?
+  pdfUrl                String?
+  orderId               String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  financialTransactions FinancialTransaction[]
+  order                 Order?                 @relation(fields: [orderId], references: [id])
+
+  @@map("invoices")
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model ShippingMethod {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  description   String?
+  price         Decimal                     @db.Decimal(10,2)
+  isActive      Boolean  @default(true)
+  estimatedDays String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("shipping_methods")
+}
+
+model SubscriptionType {
+  id          String             @id @default(cuid())
+  name        String
+  slug        String             @unique
+  description String?
+  isActive    Boolean            @default(true)
+  sortOrder   Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  plans       SubscriptionPlan[]
+
+  @@map("subscription_types")
+}
+
+model SubscriptionPlan {
+  id                 String             @id @default(cuid())
+  subscriptionTypeId String
+  name               String
+  slug               String
+  description        String?
+  price              Float
+  billingCycle       String
+  features           Json
+  limits             Json?
+  isActive           Boolean            @default(true)
+  sortOrder          Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  subscriptionType   SubscriptionType   @relation(fields: [subscriptionTypeId], references: [id], onDelete: Cascade)
+  userSubscriptions  UserSubscription[]
+
+  @@unique([subscriptionTypeId, slug])
+  @@map("subscription_plans")
+}
+
+model UserSubscription {
+  id                 String             @id @default(cuid())
+  userId             String
+  subscriptionPlanId String
+  status             SubscriptionStatus @default(ACTIVE)
+  startsAt           DateTime
+  endsAt             DateTime?
+  nextBillingDate    DateTime?
+  autoRenew          Boolean            @default(true)
+  metadata           Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  subscriptionPlan   SubscriptionPlan   @relation(fields: [subscriptionPlanId], references: [id])
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_subscriptions")
+}
+
+model Discount {
+  id                 String       @id @default(cuid())
+  code               String       @unique
+  name               String
+  type               DiscountType
+  value              Float
+  minOrderAmount     Float?
+  maxUses            Int?
+  usedCount          Int          @default(0)
+  usesPerCustomer    Int?
+  isActive           Boolean      @default(true)
+  validFrom          DateTime
+  validUntil         DateTime?
+  targetType         TargetType   @default(ALL)
+  description        String       @default("")
+  internalNotes      String       @default("")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  allCountries       Boolean      @default(true)
+  countries          Json         @default("[]")
+  isPercentage       Boolean      @default(false)
+  minOrderQuantity   Int?
+  oneTimePerCustomer Boolean      @default(false)
+  targetCategoryIds  Json         @default("[]")
+  targetProductIds   Json         @default("[]")
+
+  @@map("discounts")
+}
+
+model ContactSubmission {
+  id         String        @id @default(cuid())
+  name       String
+  email      String
+  phone      String?
+  subject    String
+  message    String
+  orderType  String?
+  status     ContactStatus @default(PENDING)
+  adminNotes String?
+  resolvedAt DateTime?
+  resolvedBy String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@map("contact_submissions")
+}
+
+model Notification {
+  id        String               @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String
+  priority  NotificationPriority @default(MEDIUM)
+  isRead    Boolean              @default(false)
+  actionUrl String?
+  metadata  Json?
+  createdAt DateTime             @default(now())
+  readAt    DateTime?
+  expiresAt DateTime?
+  userId    String?
+  user      User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([type])
+  @@index([priority])
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([isRead, createdAt])
+  @@index([priority, createdAt])
+  @@map("notifications")
+}
+
+model WorkshopProcess {
+  id                    String             @id @default(cuid())
+  name                  String
+  description           String?
+  productId             String
+  estimatedTime         Float              @default(0)
+  difficulty            ProcessDifficulty  @default(MEDIUM)
+  category              ProcessCategory
+  isActive              Boolean            @default(true)
+  designFiles           Json               @default("[]")
+  instructionFiles      Json               @default("[]")
+  referenceImages       Json               @default("[]")
+  tags                  String             @default("[]")
+  notes                 String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  equipmentRequirements ProcessEquipment[]
+  materialRequirements  ProcessMaterial[]
+  steps                 ProcessStep[]
+  product               Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("workshop_processes")
+}
+
+model ProcessStep {
+  id            String          @id @default(cuid())
+  processId     String
+  stepNumber    Int
+  title         String
+  description   String
+  estimatedTime Float           @default(0)
+  instructions  String?
+  imageUrls     Json            @default("[]")
+  videoUrls     Json            @default("[]")
+  fileUrls      Json            @default("[]")
+  isOptional    Boolean         @default(false)
+  requiresQC    Boolean         @default(false)
+  safetyNotes   String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  process       WorkshopProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@unique([processId, stepNumber])
+  @@map("process_steps")
+}
+
+model ProcessMaterial {
+  id            String          @id @default(cuid())
+  processId     String
+  materialId    String?
+  name          String
+  quantity      Float
+  unit          String
+  description   String?
+  isOptional    Boolean         @default(false)
+  estimatedCost Float?
+  supplier      String?
+  createdAt     DateTime        @default(now())
+  material      Material?       @relation(fields: [materialId], references: [id])
+  process       WorkshopProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@map("process_materials")
+}
+
+model ProcessEquipment {
+  id             String          @id @default(cuid())
+  processId      String
+  name           String
+  description    String?
+  isRequired     Boolean         @default(true)
+  specifications String          @default("{}")
+  settings       String          @default("{}")
+  alternatives   String          @default("[]")
+  createdAt      DateTime        @default(now())
+  process        WorkshopProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@map("process_equipment")
+}
+
+model ProcessTemplate {
+  id           String          @id @default(cuid())
+  name         String
+  description  String?
+  category     ProcessCategory
+  templateData String
+  isPublic     Boolean         @default(false)
+  usageCount   Int             @default(0)
+  createdBy    String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@map("process_templates")
+}
+
+model Menu {
+  id           String       @id @default(cuid())
+  name         String
+  slug         String       @unique
+  description  String?
+  location     MenuLocation @default(HEADER)
+  isActive     Boolean      @default(true)
+  sortOrder    Int          @default(0)
+  maxDepth     Int          @default(3)
+  showOnMobile Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  items        MenuItem[]
+
+  @@map("menus")
+}
+
+model MenuItem {
+  id                String               @id @default(cuid())
+  menuId            String
+  label             String
+  url               String?
+  target            MenuTarget           @default(SELF)
+  linkType          LinkType             @default(CUSTOM)
+  categoryId        String?
+  productId         String?
+  designVariantId   String?
+  pageType          PageType?
+  parentId          String?
+  sortOrder         Int                  @default(0)
+  isActive          Boolean              @default(true)
+  cssClass          String?
+  icon              String?
+  badge             String?
+  title             String?
+  description       String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  category          Category?            @relation(fields: [categoryId], references: [id])
+  menu              Menu                 @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parent            MenuItem?            @relation("MenuItemHierarchy", fields: [parentId], references: [id])
+  children          MenuItem[]           @relation("MenuItemHierarchy")
+  product           Product?             @relation(fields: [productId], references: [id])
+  designVariant     ProductDesignVariant? @relation("DesignVariantMenus", fields: [designVariantId], references: [id])
+
+  @@map("menu_items")
+}
+
+model StockReservation {
+  id        String         @id @default(cuid())
+  sessionId String
+  variantId String
+  quantity  Int
+  expiresAt DateTime
+  createdAt DateTime       @default(now())
+  userId    String?
+  userAgent String?
+  ipAddress String?
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([variantId])
+  @@index([expiresAt])
+  @@map("stock_reservations")
+}
+
+model FinancialTransaction {
+  id                   String                 @id @default(cuid())
+  description          String
+  amount               Decimal             @db.Decimal(10,2)
+  type                 TransactionType
+  category             String
+  date                 DateTime
+  vendor               String?
+  customer             String?
+  orderId              String?
+  invoiceId            String?
+  status               TransactionStatus      @default(PENDING)
+  paymentMethod        String
+  receiptUrl           String?
+  notes                String?
+  tags                 String[]
+  createdBy            String
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  isRecurring          Boolean                @default(false)
+  isRecurringGenerated Boolean                @default(false)
+  nextGenerationDate   DateTime?
+  parentTransactionId  String?
+  recurringDayOfMonth  Int?
+  recurringEndDate     DateTime?
+  recurringFrequency   RecurringFrequency?
+  recurringStartDate   DateTime?
+  recurringWeekday     Int?
+  creator              User                   @relation(fields: [createdBy], references: [id])
+  invoice              Invoice?               @relation(fields: [invoiceId], references: [id])
+  order                Order?                 @relation(fields: [orderId], references: [id])
+  parentTransaction    FinancialTransaction?  @relation("RecurringTransactions", fields: [parentTransactionId], references: [id])
+  recurringChildren    FinancialTransaction[] @relation("RecurringTransactions")
+  tagLinks             TransactionTagLink[]   @relation("TransactionTags")
+
+  @@index([type])
+  @@index([category])
+  @@index([date])
+  @@index([status])
+  @@index([createdBy])
+  @@index([isRecurring])
+  @@index([nextGenerationDate])
+  @@index([parentTransactionId])
+  @@index([orderId])
+  @@index([type, date])
+  @@index([status, date])
+  @@index([amount, date])
+  @@index([createdBy, date])
+  @@map("financial_transactions")
+}
+
+model FinancialTransactionTag {
+  id            String               @id @default(cuid())
+  name          String               @unique
+  color         String?
+  description   String?
+  createdAt     DateTime             @default(now())
+  transactions  TransactionTagLink[]
+
+  @@index([name])
+  @@map("financial_transaction_tags")
+}
+
+model TransactionTagLink {
+  id            String                   @id @default(cuid())
+  transactionId String
+  tagId         String
+  createdAt     DateTime                 @default(now())
+  transaction   FinancialTransaction     @relation("TransactionTags", fields: [transactionId], references: [id], onDelete: Cascade)
+  tag           FinancialTransactionTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, tagId])
+  @@index([transactionId])
+  @@index([tagId])
+  @@map("transaction_tag_links")
+}
+
+model FinancialCategory {
+  id          String          @id @default(cuid())
+  name        String
+  type        TransactionType
+  icon        String?
+  color       String?
+  budget      Decimal?                     @db.Decimal(10,2)
+  description String?
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([type])
+  @@index([isActive])
+  @@map("financial_categories")
+}
+
+model DesignAsset {
+  id           String    @id @default(cuid())
+  name         String
+  description  String?
+  url          String
+  thumbnailUrl String?
+  type         AssetType
+  format       String
+  fileSize     Int
+  dimensions   Json?
+  category     String
+  subcategory  String?
+  tags         String[]
+  isPremium    Boolean   @default(false)
+  isPublic     Boolean   @default(true)
+  colorPalette Json?
+  style        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([type, category])
+  @@map("design_assets")
+}
+
+model BrandStock {
+  id               String                @id @default(cuid())
+  variantId        String
+  brand            String
+  supplierId       String?
+  supplierSku      String?
+  quantity         Int                   @default(0)
+  minStock         Int                   @default(5)
+  maxStock         Int?
+  costPrice        Decimal                      @db.Decimal(10,2)
+  salePrice        Decimal?                     @db.Decimal(10,2)
+  location         String?
+  batch            String?
+  expiryDate       DateTime?
+  isPreferred      Boolean               @default(false)
+  isActive         Boolean               @default(true)
+  priority         Int                   @default(0)
+  notes            String?
+  tags             String[]              @default([])
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  lastRestock      DateTime?
+  stockMovements   BrandStockMovement[]
+  supplier         Supplier?             @relation(fields: [supplierId], references: [id])
+  variant          ProductVariant        @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  orderAllocations OrderItemAllocation[]
+
+  @@unique([variantId, brand, batch])
+  @@index([variantId])
+  @@index([brand])
+  @@index([quantity])
+  @@index([isActive])
+  @@map("brand_stocks")
+}
+
+model BrandStockMovement {
+  id            String            @id @default(cuid())
+  brandStockId  String
+  type          BrandMovementType
+  quantity      Int
+  previousStock Int
+  newStock      Int
+  orderId       String?
+  orderItemId   String?
+  reason        String?
+  notes         String?
+  userId        String?
+  createdAt     DateTime          @default(now())
+  brandStock    BrandStock        @relation(fields: [brandStockId], references: [id], onDelete: Cascade)
+  user          User?             @relation(fields: [userId], references: [id])
+
+  @@index([brandStockId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("brand_stock_movements")
+}
+
+model OrderItemAllocation {
+  id           String           @id @default(cuid())
+  orderItemId  String
+  brandStockId String
+  quantity     Int
+  allocatedAt  DateTime         @default(now())
+  status       AllocationStatus @default(ALLOCATED)
+  fulfilledAt  DateTime?
+  brandStock   BrandStock       @relation(fields: [brandStockId], references: [id])
+  orderItem    OrderItem        @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([orderItemId])
+  @@index([brandStockId])
+  @@map("order_item_allocations")
+}
+
+model ProductSide {
+  id                String                           @id @default(cuid())
+  productId         String
+  name              String
+  displayName       String?
+  position          Int                              @default(0)
+  image2D           String?
+  image3D           String?
+  surcharge         Decimal?                         @default(0) @db.Decimal(10,2)
+  isActive          Boolean                          @default(true)
+  createdAt         DateTime                         @default(now())
+  updatedAt         DateTime                         @updatedAt
+  pricingRuleItems  PersonalizationPricingRuleItem[]
+  printAreas        PrintArea[]
+  product           Product                          @relation("ProductSides", fields: [productId], references: [id], onDelete: Cascade)
+  variantSideImages VariantSideImage[]
+
+  @@index([productId])
+  @@index([position])
+  @@map("product_sides")
+}
+
+model PrintArea {
+  id                       String                           @id @default(cuid())
+  sideId                   String
+  name                     String
+  displayName              String?
+  description              String?
+  x                        Float
+  y                        Float
+  width                    Float
+  height                   Float
+  rotation                 Float                            @default(0)
+  printingMethod           PrintingMethod                   @default(DTG)
+  maxPrintWidth            Float?
+  maxPrintHeight           Float?
+  resolution               Int                              @default(300)
+  maxColors                Int                              @default(10)
+  extraCostPerColor        Decimal                          @default(0) @db.Decimal(10,2)
+  basePrice                Decimal                          @default(0) @db.Decimal(10,2)
+  allowText                Boolean                          @default(true)
+  allowImages              Boolean                          @default(true)
+  allowShapes              Boolean                          @default(true)
+  allowClipart             Boolean                          @default(true)
+  mandatoryPersonalization Boolean                          @default(false)
+  sortOrder                Int                              @default(0)
+  isActive                 Boolean                          @default(true)
+  createdAt                DateTime                         @default(now())
+  updatedAt                DateTime                         @updatedAt
+  realHeight               Float?
+  realWidth                Float?
+  isRelativeCoordinates    Boolean                          @default(false)
+  referenceHeight          Float?
+  referenceWidth           Float?
+  // Coordenadas relativas del área de impresión (porcentajes 0-100)
+  relativeX                Float?
+  relativeY                Float?
+  relativeWidth            Float?
+  relativeHeight           Float?
+  // URL de imagen de referencia para el área
+  referenceImageUrl        String?
+  designElements           DesignElement[]
+  pricingRuleItems         PersonalizationPricingRuleItem[]
+  side                     ProductSide                      @relation(fields: [sideId], references: [id], onDelete: Cascade)
+
+  @@index([sideId])
+  @@index([printingMethod])
+  @@map("print_areas")
+}
+
+model DesignElement {
+  id          String      @id @default(cuid())
+  printAreaId String
+  orderItemId String?
+  type        ElementType
+  content     String
+  x           Float
+  y           Float
+  width       Float
+  height      Float
+  // Coordenadas relativas (porcentajes 0-100)
+  relativeX   Float?
+  relativeY   Float?
+  relativeWidth Float?
+  relativeHeight Float?
+  // Dimensiones de referencia para la conversión
+  referenceDimensionsWidth  Float?
+  referenceDimensionsHeight Float?
+  rotation    Float       @default(0)
+  scaleX      Float       @default(1)
+  scaleY      Float       @default(1)
+  opacity     Float       @default(1)
+  style       Json
+  zIndex      Int         @default(0)
+  isLocked    Boolean     @default(false)
+  isVisible   Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItem   OrderItem?  @relation("OrderItemDesignElements", fields: [orderItemId], references: [id], onDelete: Cascade)
+  printArea   PrintArea   @relation(fields: [printAreaId], references: [id], onDelete: Cascade)
+
+  @@index([printAreaId])
+  @@index([orderItemId])
+  @@index([type])
+  @@map("design_elements")
+}
+
+model VariantSideImage {
+  id        String         @id @default(cuid())
+  variantId String
+  sideId    String
+  imageUrl  String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  side      ProductSide    @relation(fields: [sideId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, sideId])
+  @@map("variant_side_images")
+}
+
+model LoviBoxSubscription {
+  id                  String                    @id @default(cuid())
+  customerId          String
+  level               LoviBoxLevel              @default(BASIC)
+  frequency           LoviBoxFrequency          @default(MONTHLY)
+  status              LoviBoxSubscriptionStatus @default(ACTIVE)
+  monthlyPrice        Decimal                      @db.Decimal(10,2)
+  nextBillingDate     DateTime
+  startDate           DateTime                  @default(now())
+  endDate             DateTime?
+  pausedUntil         DateTime?
+  shippingAddress     Json
+  specialInstructions String?
+  totalBoxesReceived  Int                       @default(0)
+  totalAmountPaid     Decimal                   @default(0) @db.Decimal(10,2)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  createdBy           String?
+  deliveries          LoviBoxDelivery[]
+  payments            LoviBoxPayment[]
+  preferences         LoviBoxPreferences?
+  customer            User                      @relation("CustomerSubscriptions", fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([status])
+  @@index([nextBillingDate])
+  @@map("lovibox_subscriptions")
+}
+
+model LoviBoxPreferences {
+  id                     String              @id @default(cuid())
+  subscriptionId         String              @unique
+  preferredColors        String[]            @default([])
+  avoidColors            String[]            @default([])
+  productAllergies       String[]            @default([])
+  favoriteThemes         String[]            @default([])
+  avoidThemes            String[]            @default([])
+  includePersonalization Boolean             @default(true)
+  maxPersonalizationCost Decimal?                 @db.Decimal(10,2)
+  notes                  String?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  subscription           LoviBoxSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("lovibox_preferences")
+}
+
+model LoviBoxTemplate {
+  id                  String                  @id @default(cuid())
+  name                String
+  slug                String                  @unique
+  description         String?
+  level               LoviBoxLevel
+  theme               LoviBoxTheme
+  month               Int?
+  year                Int?
+  image               String?
+  socialImage         String?
+  marketingText       String?
+  basicPrice          Decimal                      @db.Decimal(10,2)
+  premiumPrice        Decimal                      @db.Decimal(10,2)
+  vipPrice            Decimal                      @db.Decimal(10,2)
+  status              LoviBoxTemplateStatus   @default(DRAFT)
+  isActive            Boolean                 @default(true)
+  productionStartDate DateTime?
+  shippingStartDate   DateTime?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  createdBy           String?
+  deliveries          LoviBoxDelivery[]
+  productionTasks     LoviBoxProductionTask[]
+  products            LoviBoxProduct[]
+  creator             User?                   @relation("BoxTemplateCreator", fields: [createdBy], references: [id])
+
+  @@unique([month, year, level])
+  @@index([status])
+  @@index([level])
+  @@index([month, year])
+  @@map("lovibox_templates")
+}
+
+model LoviBoxProduct {
+  id                  String          @id @default(cuid())
+  templateId          String
+  productId           String
+  quantity            Int             @default(1)
+  costPerUnit         Decimal                      @db.Decimal(10,2)
+  isPersonalizable    Boolean         @default(false)
+  personalizationCost Decimal?                     @db.Decimal(10,2)
+  designData          Json?
+  productionNotes     String?
+  displayOrder        Int             @default(0)
+  isMainProduct       Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  product             Product         @relation(fields: [productId], references: [id])
+  template            LoviBoxTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+  @@index([productId])
+  @@map("lovibox_products")
+}
+
+model LoviBoxDelivery {
+  id               String                @id @default(cuid())
+  subscriptionId   String
+  templateId       String
+  status           LoviBoxDeliveryStatus @default(PENDING)
+  trackingNumber   String?
+  carrier          String?
+  shippingCost     Decimal               @default(0) @db.Decimal(10,2)
+  weight           Float?
+  scheduledDate    DateTime
+  preparedDate     DateTime?
+  shippedDate      DateTime?
+  deliveredDate    DateTime?
+  shippingAddress  Json
+  actualProducts   Json?
+  totalValue       Decimal               @default(0) @db.Decimal(10,2)
+  customerRating   Int?
+  customerFeedback String?
+  nfcScanned       Boolean               @default(false)
+  nfcScanDate      DateTime?
+  internalNotes    String?
+  deliveryNotes    String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  subscription     LoviBoxSubscription   @relation(fields: [subscriptionId], references: [id])
+  template         LoviBoxTemplate       @relation(fields: [templateId], references: [id])
+
+  @@index([subscriptionId])
+  @@index([templateId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("lovibox_deliveries")
+}
+
+model LoviBoxProductionTask {
+  id                String                @id @default(cuid())
+  templateId        String
+  taskType          LoviBoxProductionType
+  productType       String
+  title             String
+  description       String?
+  totalQuantity     Int
+  completedQuantity Int                   @default(0)
+  status            LoviBoxTaskStatus     @default(PENDING)
+  priority          LoviBoxTaskPriority   @default(MEDIUM)
+  assignedTo        String?
+  estimatedHours    Float?
+  actualHours       Float?
+  dueDate           DateTime
+  startDate         DateTime?
+  completedDate     DateTime?
+  materialsNeeded   Json?
+  materialsUsed     Json?
+  productionNotes   String?
+  qualityChecked    Boolean               @default(false)
+  qualityNotes      String?
+  qualityBy         String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  createdBy         String?
+  assignee          User?                 @relation("TaskAssignee", fields: [assignedTo], references: [id])
+  creator           User?                 @relation("TaskCreator", fields: [createdBy], references: [id])
+  template          LoviBoxTemplate       @relation(fields: [templateId], references: [id])
+
+  @@index([templateId])
+  @@index([status])
+  @@index([assignedTo])
+  @@index([dueDate])
+  @@map("lovibox_production_tasks")
+}
+
+model LoviBoxPayment {
+  id                  String               @id @default(cuid())
+  subscriptionId      String
+  amount              Float
+  currency            String               @default("EUR")
+  status              LoviBoxPaymentStatus @default(PENDING)
+  paymentMethod       String
+  stripePaymentId     String?
+  stripeInvoiceId     String?
+  paypalTransactionId String?
+  billingDate         DateTime
+  paymentDate         DateTime?
+  dueDate             DateTime?
+  description         String?
+  failureReason       String?
+  refundAmount        Decimal?             @default(0) @db.Decimal(10,2)
+  refundReason        String?
+  metadata            Json?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  subscription        LoviBoxSubscription  @relation(fields: [subscriptionId], references: [id])
+
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([billingDate])
+  @@map("lovibox_payments")
+}
+
+model LoviBoxAnalytics {
+  id                      String   @id @default(cuid())
+  date                    DateTime @unique @db.Date
+  totalSubscriptions      Int
+  newSubscriptions        Int
+  canceledSubscriptions   Int
+  pausedSubscriptions     Int
+  basicCount              Int
+  premiumCount            Int
+  vipCount                Int
+  totalRevenue            Decimal                  @db.Decimal(12,2)
+  averageRevenuePerUser   Decimal                  @db.Decimal(10,2)
+  monthlyRecurringRevenue Decimal                  @db.Decimal(12,2)
+  totalDeliveries         Int
+  successfulDeliveries    Int
+  averageRating           Float?
+  nfcScans                Int
+  tasksCompleted          Int
+  tasksInProgress         Int
+  averageProductionTime   Float?
+  createdAt               DateTime @default(now())
+
+  @@index([date])
+  @@map("lovibox_analytics")
+}
+
+model ZakekeAsset {
+  id            String   @id @default(cuid())
+  name          String
+  originalName  String
+  category      String
+  subcategory   String?
+  url           String
+  thumbnailUrl  String?
+  fileType      String
+  fileSize      Int
+  width         Int?
+  height        Int?
+  isPremium     Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  tags          String[] @default([])
+  downloadCount Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category])
+  @@index([fileType])
+  @@index([isPremium])
+  @@map("zakeke_assets")
+}
+
+model ZakekePresetColor {
+  id        String  @id @default(cuid())
+  name      String
+  hexValue  String
+  category  String
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  @@index([category])
+  @@map("zakeke_preset_colors")
+}
+
+model ZakekeFont {
+  id          String   @id @default(cuid())
+  name        String
+  fontFamily  String
+  fontUrl     String?
+  category    String
+  hasVariants Boolean  @default(false)
+  variants    String[] @default([])
+  previewText String   @default("Abc")
+  isPremium   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([isPremium])
+  @@map("zakeke_fonts")
+}
+
+model ZakekeTemplate {
+  id                      String   @id @default(cuid())
+  name                    String
+  description             String?
+  category                String
+  subcategory             String?
+  thumbnailUrl            String
+  previewUrl              String?
+  productTypes            String[] @default([])
+  templateData            Json
+  allowTextEdit           Boolean  @default(true)
+  allowColorEdit          Boolean  @default(true)
+  allowImageEdit          Boolean  @default(true)
+  editableAreas           String[] @default([])
+  isPremium               Boolean  @default(false)
+  isActive                Boolean  @default(true)
+  isPublic                Boolean  @default(true)
+  isDefaultForAllVariants Boolean  @default(false)
+  usageCount              Int      @default(0)
+  rating                  Float?
+  createdBy               String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  creator                 User?    @relation("DesignTemplateCreator", fields: [createdBy], references: [id])
+  designVariants          ProductDesignVariant[] @relation("TemplateDesignVariants")
+
+  @@index([category])
+  @@index([isPremium])
+  @@index([isActive])
+  @@index([createdBy])
+  @@index([isDefaultForAllVariants])
+  @@map("zakeke_templates")
+}
+
+model CustomerDesign {
+  id              String       @id @default(cuid())
+  productId       String
+  customerId      String?
+  status          DesignStatus @default(DRAFT)
+  name            String?
+  selectedVariant String?
+  quantity        Int          @default(1)
+  designData      Json
+  previewImages   String[]     @default([])
+  basePrice       Decimal      @default(0) @db.Decimal(10,2)
+  customPrice     Decimal      @default(0) @db.Decimal(10,2)
+  totalPrice      Decimal      @default(0) @db.Decimal(10,2)
+  printFiles      Json?
+  lastAccessed    DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  customer        User?        @relation(fields: [customerId], references: [id])
+  product         Product      @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@index([customerId])
+  @@index([status])
+  @@index([lastAccessed])
+  @@map("customer_designs")
+}
+
+model PrintingMethodConfig {
+  id                    String            @id @default(cuid())
+  name                  String
+  isActive              Boolean           @default(true)
+  outputFormat          PrintOutputFormat @default(PDF)
+  dpi                   Int               @default(300)
+  singleFile            Boolean           @default(true)
+  useCMYKProfile        Boolean           @default(false)
+  duplicateFiles        Boolean           @default(false)
+  replaceColors         Boolean           @default(false)
+  maxColors             Int?
+  allowText             Boolean           @default(true)
+  allowTextArt          Boolean           @default(true)
+  allowTextBox          Boolean           @default(true)
+  allowCurvedText       Boolean           @default(true)
+  allowBold             Boolean           @default(true)
+  allowItalic           Boolean           @default(true)
+  allowUppercase        Boolean           @default(true)
+  maxTextElements       Int               @default(0)
+  defaultTextColor      String            @default("#287fb9")
+  predefinedColors      String            @default("[]")
+  textResizeMode        TextResizeMode    @default(UNRESTRICTED)
+  defaultFontSize       Int?
+  enableTextStroke      Boolean           @default(false)
+  allowTextOutline      Boolean           @default(false)
+  minLineSpacing        Int?
+  maxLineSpacing        Int?
+  minLetterSpacing      Int?
+  maxLetterSpacing      Int?
+  allowLeftAlign        Boolean           @default(true)
+  allowCenterAlign      Boolean           @default(true)
+  allowRightAlign       Boolean           @default(true)
+  allowJustifyAlign     Boolean           @default(true)
+  allowTopAlign         Boolean           @default(true)
+  allowMiddleAlign      Boolean           @default(true)
+  allowBottomAlign      Boolean           @default(true)
+  enableImageGallery    Boolean           @default(true)
+  autoFitImages         Boolean           @default(true)
+  preventImageResize    Boolean           @default(false)
+  allowUserUploads      Boolean           @default(true)
+  allowLargeFiles       Boolean           @default(false)
+  maxImages             Int               @default(0)
+  allowImageStretch     Boolean           @default(false)
+  allowSVGColorChange   Boolean           @default(false)
+  acceptPNG             Boolean           @default(true)
+  acceptJPG             Boolean           @default(true)
+  acceptSVG             Boolean           @default(true)
+  acceptPDF             Boolean           @default(true)
+  acceptEPS             Boolean           @default(false)
+  acceptAI              Boolean           @default(false)
+  allowPDFRaster        Boolean           @default(false)
+  convertPDFToRaster    Boolean           @default(false)
+  resizeLargePDF        Boolean           @default(true)
+  convertEPSToRaster    Boolean           @default(false)
+  convertAIToRaster     Boolean           @default(false)
+  allowFacebookPhotos   Boolean           @default(false)
+  allowPremiumPhotos    Boolean           @default(false)
+  enableImageTools      Boolean           @default(true)
+  enableTransform       Boolean           @default(true)
+  enableFilters         Boolean           @default(true)
+  enableAdjustments     Boolean           @default(true)
+  enableFocus           Boolean           @default(true)
+  enableBrush           Boolean           @default(true)
+  enableFrames          Boolean           @default(true)
+  enableOverlay         Boolean           @default(true)
+  allowPDFPreview       Boolean           @default(true)
+  allowDuplicate        Boolean           @default(true)
+  allowFlip             Boolean           @default(true)
+  allowLayerOrder       Boolean           @default(true)
+  enableTextShadow      Boolean           @default(false)
+  includeShadowInPrint  Boolean           @default(false)
+  defaultShadowColor    String            @default("#000000")
+  defaultShadowBlur     Int               @default(2)
+  minShadowBlur         Int               @default(0)
+  maxShadowBlur         Int               @default(50)
+  defaultShadowDistance Int               @default(2)
+  minShadowDistance     Int               @default(0)
+  maxShadowDistance     Int               @default(200)
+  defaultShadowAngle    Int               @default(45)
+  minShadowAngle        Int               @default(0)
+  maxShadowAngle        Int               @default(359)
+  availableFonts        String            @default("[]")
+  defaultFont           String?
+  enableEngraving       Boolean           @default(false)
+  enableFullColorWood   Boolean           @default(false)
+  applicableProducts    String            @default("[]")
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  productSides          String            @default("{}")
+
+  @@map("printing_method_configs")
+}
+
+model CustomFont {
+  id         String   @id @default(cuid())
+  name       String
+  family     String
+  style      String
+  weight     String
+  format     String
+  fileName   String
+  fileUrl    String?
+  fileSize   Int
+  isActive   Boolean  @default(true)
+  uploadDate DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([family, style])
+  @@index([family])
+  @@index([isActive])
+  @@map("custom_fonts")
+}
+
+model PersonalizationShape {
+  id            String                      @id @default(cuid())
+  name          String
+  category      String
+  fileUrl       String
+  isMask        Boolean                     @default(true)
+  tags          String[]                    @default([])
+  isFromLibrary Boolean                     @default(false)
+  fileType      String?
+  fileSize      Int?
+  isActive      Boolean                     @default(true)
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+  usages        PersonalizationShapeUsage[]
+
+  @@index([category])
+  @@index([isMask])
+  @@index([isActive])
+  @@map("personalization_shapes")
+}
+
+model PersonalizationShapeUsage {
+  id        String               @id @default(cuid())
+  shapeId   String
+  orderId   String?
+  designId  String?
+  userId    String?
+  context   Json?
+  createdAt DateTime             @default(now())
+  order     Order?               @relation(fields: [orderId], references: [id])
+  shape     PersonalizationShape @relation(fields: [shapeId], references: [id], onDelete: Cascade)
+  user      User?                @relation(fields: [userId], references: [id])
+
+  @@index([shapeId])
+  @@index([orderId])
+  @@index([userId])
+  @@map("personalization_shape_usages")
+}
+
+model PersonalizationImage {
+  id                String                                     @id @default(cuid())
+  name              String
+  categoryId        String?
+  macroCategoryId   String?
+  fileUrl           String
+  thumbnailUrl      String?
+  isActive          Boolean                                    @default(true)
+  tags              String[]                                   @default([])
+  isFromLibrary     Boolean                                    @default(false)
+  fileType          String?
+  fileSize          Int?
+  width             Int?
+  height            Int?
+  isPublic          Boolean                                    @default(true)
+  createdAt         DateTime                                   @default(now())
+  updatedAt         DateTime                                   @updatedAt
+  category          PersonalizationImageCategory?             @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  macroCategory     PersonalizationImageMacroCategory?        @relation(fields: [macroCategoryId], references: [id], onDelete: SetNull)
+  linkedProducts    PersonalizationImageProductLink[]
+  usages            PersonalizationImageUsage[]
+
+  @@index([categoryId])
+  @@index([macroCategoryId])
+  @@index([isActive])
+  @@index([isPublic])
+  @@map("personalization_images")
+}
+
+model PersonalizationImageUsage {
+  id        String               @id @default(cuid())
+  imageId   String
+  orderId   String?
+  designId  String?
+  userId    String?
+  context   Json?
+  createdAt DateTime             @default(now())
+  image     PersonalizationImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  order     Order?               @relation(fields: [orderId], references: [id])
+  user      User?                @relation(fields: [userId], references: [id])
+
+  @@index([imageId])
+  @@index([orderId])
+  @@index([userId])
+  @@map("personalization_image_usages")
+}
+
+model PersonalizationImageProductLink {
+  id        String               @id @default(cuid())
+  imageId   String
+  productId String
+  isActive  Boolean              @default(true)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  image     PersonalizationImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  product   Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([imageId, productId])
+  @@index([imageId])
+  @@index([productId])
+  @@index([isActive])
+  @@map("personalization_image_product_links")
+}
+
+model PersonalizationImageCategoryProductLink {
+  id         String                       @id @default(cuid())
+  categoryId String
+  productId  String
+  isActive   Boolean                      @default(true)
+  createdAt  DateTime                     @default(now())
+  updatedAt  DateTime                     @updatedAt
+  category   PersonalizationImageCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  product    Product                      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, productId])
+  @@index([categoryId])
+  @@index([productId])
+  @@index([isActive])
+  @@map("personalization_image_category_product_links")
+}
+
+model PersonalizationImageMacroCategoryProductLink {
+  id              String                            @id @default(cuid())
+  macroCategoryId String
+  productId       String
+  isActive        Boolean                           @default(true)
+  createdAt       DateTime                          @default(now())
+  updatedAt       DateTime                          @updatedAt
+  macroCategory   PersonalizationImageMacroCategory @relation(fields: [macroCategoryId], references: [id], onDelete: Cascade)
+  product         Product                           @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([macroCategoryId, productId])
+  @@index([macroCategoryId])
+  @@index([productId])
+  @@index([isActive])
+  @@map("personalization_image_macro_category_product_links")
+}
+
+model PersonalizationImageMacroCategory {
+  id          String                          @id @default(cuid())
+  slug        String                          @unique
+  name        String
+  description String?
+  icon        String?
+  sortOrder   Int                             @default(0)
+  isActive    Boolean                         @default(true)
+  createdAt   DateTime                        @default(now())
+  updatedAt   DateTime                        @updatedAt
+  categories      PersonalizationImageCategory[]
+  images          PersonalizationImage[]
+  linkedProducts  PersonalizationImageMacroCategoryProductLink[]
+
+  @@index([sortOrder])
+  @@map("personalization_image_macro_categories")
+}
+
+model PersonalizationImageCategory {
+  id              String                           @id @default(cuid())
+  slug            String                           @unique
+  name            String
+  description     String?
+  macroCategoryId String?
+  sortOrder       Int                              @default(0)
+  isActive        Boolean                          @default(true)
+  createdAt       DateTime                         @default(now())
+  updatedAt       DateTime                         @updatedAt
+  macroCategory   PersonalizationImageMacroCategory? @relation(fields: [macroCategoryId], references: [id], onDelete: SetNull)
+  images          PersonalizationImage[]
+  linkedProducts  PersonalizationImageCategoryProductLink[]
+
+  @@index([macroCategoryId])
+  @@index([sortOrder])
+  @@map("personalization_image_categories")
+}
+
+model PersonalizationPricingRule {
+  id                String                            @id @default(cuid())
+  name              String
+  description       String
+  productId         String
+  isActive          Boolean                           @default(true)
+  createdAt         DateTime                          @default(now())
+  updatedAt         DateTime                          @updatedAt
+  rules             PersonalizationPricingRuleItem[]
+  product           Product                           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantityDiscounts PersonalizationQuantityDiscount[]
+
+  @@index([productId])
+  @@index([isActive])
+  @@map("personalization_pricing_rules")
+}
+
+model PersonalizationPricingRuleItem {
+  id          String                     @id @default(cuid())
+  ruleId      String
+  type        PersonalizationRuleType
+  sideId      String?
+  printAreaId String?
+  price       Decimal                      @db.Decimal(10,2)
+  createdAt   DateTime                   @default(now())
+  printArea   PrintArea?                 @relation(fields: [printAreaId], references: [id], onDelete: Cascade)
+  rule        PersonalizationPricingRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  side        ProductSide?               @relation(fields: [sideId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([type])
+  @@index([sideId])
+  @@index([printAreaId])
+  @@map("personalization_pricing_rule_items")
+}
+
+model PersonalizationQuantityDiscount {
+  id            String                      @id @default(cuid())
+  ruleId        String
+  minQuantity   Int
+  discountType  PersonalizationDiscountType
+  discountValue Decimal                      @db.Decimal(10,2)
+  createdAt     DateTime                    @default(now())
+  rule          PersonalizationPricingRule  @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([minQuantity])
+  @@map("personalization_quantity_discounts")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+  EXPIRED
+  PENDING
+}
+
+enum NotificationType {
+  NEW_ORDER
+  ORDER_STATUS_CHANGE
+  LOW_STOCK
+  OUT_OF_STOCK
+  NEW_CUSTOMER
+  PAYMENT_RECEIVED
+  PAYMENT_FAILED
+  PRODUCTION_COMPLETE
+  SHIPPING_UPDATE
+  CONTACT_FORM
+  SYSTEM_ALERT
+  MAINTENANCE
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PRODUCTION
+  READY_FOR_PICKUP
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum OrderSource {
+  ONLINE
+  STORE
+}
+
+enum OrderPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum InvoiceStatus {
+  PENDING
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+  DRAFT
+}
+
+enum ProductionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+}
+
+enum MovementType {
+  IN
+  OUT
+  ADJUSTMENT
+  RETURN
+}
+
+enum DiscountType {
+  PRODUCT_DISCOUNT
+  CATEGORY_DISCOUNT
+  FREE_SHIPPING
+}
+
+enum TargetType {
+  ALL
+  PRODUCTS
+  CATEGORIES
+  USERS
+}
+
+enum MaterialUnit {
+  KG
+  G
+  L
+  ML
+  M
+  CM
+  M2
+  UNITS
+  ROLLS
+  SHEETS
+}
+
+enum ContactStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum MaterialCategory {
+  TEXTILES
+  INKS
+  FILMS
+  SUBSTRATES
+  TOOLS
+  PACKAGING
+  CHEMICALS
+  OTHER
+}
+
+enum MaterialMovementType {
+  PURCHASE
+  CONSUMPTION
+  ADJUSTMENT
+  RETURN
+  WASTE
+  TRANSFER
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  SENT
+  CONFIRMED
+  SHIPPED
+  RECEIVED
+  PARTIALLY_RECEIVED
+  CANCELLED
+}
+
+enum StockAlertType {
+  LOW_STOCK
+  OUT_OF_STOCK
+  OVERSTOCK
+  EXPIRED
+  REORDER_POINT
+}
+
+enum ProcessDifficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+enum ProcessCategory {
+  DTF_PRINTING
+  SUBLIMATION
+  LASER_CUTTING
+  VINYL_CUTTING
+  EMBROIDERY
+  ASSEMBLY
+  FINISHING
+  QUALITY_CONTROL
+  PACKAGING
+  DESIGN
+  OTHER
+}
+
+enum MenuLocation {
+  HEADER
+  FOOTER
+  SIDEBAR
+  MOBILE
+  BREADCRUMB
+  CATEGORY
+}
+
+enum MenuTarget {
+  SELF
+  BLANK
+  PARENT
+  TOP
+}
+
+enum LinkType {
+  CUSTOM
+  HOME
+  CATEGORY
+  PRODUCT
+  PAGE
+  EXTERNAL
+  CUSTOMIZER
+}
+
+enum PageType {
+  HOME
+  ABOUT
+  CONTACT
+  TERMS
+  PRIVACY
+  FAQ
+  BLOG
+  GALLERY
+  SERVICES
+  CUSTOMIZER
+  CATALOG
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionStatus {
+  PENDING
+  APPROVED
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum CategoryType {
+  REGULAR
+  FEATURED
+  TOP_SALES
+  SPECIAL
+}
+
+enum AssetType {
+  IMAGE
+  ICON
+  ILLUSTRATION
+  BACKGROUND
+  TEXTURE
+  PATTERN
+  FONT
+  SHAPE
+}
+
+enum BrandMovementType {
+  PURCHASE
+  SALE
+  ADJUSTMENT
+  TRANSFER
+  RETURN
+  DAMAGE
+  EXPIRED
+  RECOUNT
+}
+
+enum AllocationStatus {
+  ALLOCATED
+  FULFILLED
+  CANCELLED
+  RETURNED
+}
+
+enum RecurringFrequency {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum LoviBoxLevel {
+  BASIC
+  PREMIUM
+  VIP
+}
+
+enum LoviBoxFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+enum LoviBoxSubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELED
+  EXPIRED
+  PENDING_PAYMENT
+  PENDING_ACTIVATION
+}
+
+enum LoviBoxTheme {
+  ROMANTIC
+  FAMILY
+  FRIENDSHIP
+  CELEBRATION
+  SEASONAL
+  WELLNESS
+  CREATIVE
+  GOURMET
+  ADVENTURE
+  CUSTOM
+}
+
+enum LoviBoxTemplateStatus {
+  DRAFT
+  PLANNING
+  DESIGN
+  PRODUCTION
+  READY
+  SHIPPING
+  COMPLETED
+  CANCELED
+}
+
+enum LoviBoxDeliveryStatus {
+  PENDING
+  PREPARING
+  READY
+  SHIPPED
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  RETURNED
+}
+
+enum LoviBoxProductionType {
+  DTF
+  SUBLIMATION
+  LASER_CUTTING
+  VINYL_CUTTING
+  EMBROIDERY
+  ASSEMBLY
+  PACKAGING
+  QUALITY_CHECK
+  DESIGN
+  PHOTOGRAPHY
+}
+
+enum LoviBoxTaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+  ON_HOLD
+  BLOCKED
+}
+
+enum LoviBoxTaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum LoviBoxPaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PrintingMethod {
+  DTG
+  SUBLIMATION
+  SCREEN_PRINT
+  EMBROIDERY
+  LASER_ENGRAVING
+  VINYL
+  DTF
+  HEAT_TRANSFER
+  DIGITAL_PRINT
+}
+
+enum ElementType {
+  TEXT
+  IMAGE
+  SHAPE
+  CLIPART
+  QR_CODE
+  BARCODE
+}
+
+enum DesignStatus {
+  DRAFT
+  SAVED
+  COMPLETED
+  ORDERED
+  ARCHIVED
+}
+
+enum PrintOutputFormat {
+  SVG
+  PDF
+  PNG
+  DXF
+}
+
+enum TextResizeMode {
+  UNRESTRICTED
+  MIN_MAX
+  PRESETS
+}
+
+enum PersonalizationRuleType {
+  SIDE
+  AREA
+}
+
+enum PersonalizationDiscountType {
+  FIXED
+  PERCENTAGE
+}
+
+enum DesignComplexity {
+  SIMPLE
+  MEDIUM
+  COMPLEX
+  PREMIUM
+}
+
+model ProductDesignVariant {
+  id                    String            @id @default(cuid())
+  productId             String
+  templateId            String?
+  name                  String
+  slug                  String            @unique
+  sku                   String            @unique
+  description           String?
+  shortDescription      String?
+  images                String            @default("[]")
+  thumbnailUrl          String?
+  galleryImages         String            @default("[]")
+  basePrice             Decimal           @db.Decimal(10,2)
+  designSurcharge       Decimal           @default(0) @db.Decimal(10,2)
+  comparePrice          Decimal?          @db.Decimal(10,2)
+  costPrice             Decimal?          @db.Decimal(10,2)
+  isActive              Boolean           @default(true)
+  featured              Boolean           @default(false)
+  isPublic              Boolean           @default(true)
+  requiresApproval      Boolean           @default(false)
+  designData            Json
+  printFiles            Json?
+  designComplexity      DesignComplexity  @default(SIMPLE)
+  metaTitle             String?
+  metaDescription       String?
+  marketingTags         String[]          @default([])
+  allowCustomization    Boolean           @default(false)
+  customizationPrice    Decimal?          @db.Decimal(10,2)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  publishedAt           DateTime?
+  createdBy             String?
+  sortOrder             Int               @default(0)
+  
+  product               Product           @relation("ProductDesignVariants", fields: [productId], references: [id], onDelete: Cascade)
+  template              ZakekeTemplate?   @relation("TemplateDesignVariants", fields: [templateId], references: [id])
+  creator               User?             @relation("CreatedDesignVariants", fields: [createdBy], references: [id])
+  orderItems            OrderItem[]       @relation("DesignVariantOrders")
+  menuItems             MenuItem[]        @relation("DesignVariantMenus")
+  categories            ProductDesignCategory[]
+  marketingTagLinks     DesignVariantTagLink[]    @relation("DesignVariantTags")
+
+  @@index([productId])
+  @@index([slug])
+  @@index([isActive, isPublic])
+  @@index([featured])
+  @@index([templateId])
+  @@index([createdBy])
+  @@index([sortOrder])
+  @@map("product_design_variants")
+}
+
+model ProductDesignCategory {
+  id                String               @id @default(cuid())
+  designVariantId   String
+  categoryId        String
+  isPrimary         Boolean              @default(false)
+  createdAt         DateTime             @default(now())
+  
+  designVariant     ProductDesignVariant @relation(fields: [designVariantId], references: [id], onDelete: Cascade)
+  category          Category             @relation("DesignCategories", fields: [categoryId], references: [id])
+  
+  @@unique([designVariantId, categoryId])
+  @@index([designVariantId])
+  @@index([categoryId])
+  @@map("product_design_categories")
+}
+
+model MarketingTag {
+  id              String                    @id @default(cuid())
+  name            String                    @unique
+  color           String?
+  description     String?
+  category        String?                   // e.g., "season", "style", "audience"
+  isActive        Boolean                   @default(true)
+  createdAt       DateTime                  @default(now())
+  designVariants  DesignVariantTagLink[]
+
+  @@index([name])
+  @@index([category])
+  @@index([isActive])
+  @@map("marketing_tags")
+}
+
+model DesignVariantTagLink {
+  id                String                @id @default(cuid())
+  designVariantId   String
+  tagId             String
+  createdAt         DateTime              @default(now())
+  designVariant     ProductDesignVariant  @relation("DesignVariantTags", fields: [designVariantId], references: [id], onDelete: Cascade)
+  tag               MarketingTag          @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([designVariantId, tagId])
+  @@index([designVariantId])
+  @@index([tagId])
+  @@map("design_variant_tag_links")
+}
+
+model EmailTemplate {
+  id             String                @id @default(cuid())
+  type           EmailTemplateType
+  name           String
+  description    String?
+  subject        String
+  htmlContent    String                @db.Text
+  textContent    String?               @db.Text
+  variables      Json?                 // Variables disponibles en el template
+  isActive       Boolean               @default(true)
+  isDefault      Boolean               @default(false)
+  language       String                @default("es")
+  version        Int                   @default(1)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  createdBy      String?
+  lastEditedBy   String?
+  
+  creator        User?                 @relation("CreatedEmailTemplates", fields: [createdBy], references: [id])
+  editor         User?                 @relation("EditedEmailTemplates", fields: [lastEditedBy], references: [id])
+  
+  @@index([type])
+  @@index([isActive])
+  @@index([isDefault])
+  @@index([language])
+  @@map("email_templates")
+}
+
+enum EmailTemplateType {
+  ORDER_CONFIRMATION
+  ORDER_STATUS_UPDATE
+  PAYMENT_CONFIRMATION
+  PAYMENT_FAILED
+  SHIPPING_NOTIFICATION
+  DELIVERY_CONFIRMATION
+  REFUND_PROCESSED
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+  WELCOME
+  NEWSLETTER
+  MARKETING
+  CUSTOM
+}
