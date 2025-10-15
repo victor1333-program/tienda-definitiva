@@ -1,6 +1,6 @@
 // Accessibility utilities and helpers
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 
 // Focus management utilities
 export const focusUtils = {
@@ -338,9 +338,6 @@ export function useReducedMotion() {
 
   return prefersReducedMotion
 }
-
-// Fix: Add missing useState import
-import { useState } from 'react'
 
 // ARIA utilities
 export const ariaUtils = {

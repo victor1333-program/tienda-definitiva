@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { focusUtils } from '@/lib/accessibility'
 
 export default function SkipLink() {

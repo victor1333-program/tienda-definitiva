@@ -3,7 +3,7 @@ module.exports = {
   apps: [
     {
       name: 'tienda-definitiva',
-      script: 'server.js',
+      script: '.next/standalone/server.js',
       cwd: '/home/developer/lovilike-dev',
       instances: 2, // Usar 2 instancias para estabilidad
       exec_mode: 'cluster',
@@ -11,11 +11,25 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        DATABASE_URL: 'postgresql://developer:dev123@localhost:5432/lovilike_dev',
+        NEXTAUTH_URL: 'https://lovilike.es',
+        AUTH_URL: 'https://lovilike.es',
+        AUTH_TRUST_HOST: 'true',
+        NEXTAUTH_SECRET: 'dev-secret-lovilike-2024',
+        NEXT_PUBLIC_APP_URL: 'https://lovilike.es',
+        NEXT_PUBLIC_API_URL: 'https://lovilike.es/api'
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        DATABASE_URL: 'postgresql://developer:dev123@localhost:5432/lovilike_dev',
+        NEXTAUTH_URL: 'https://lovilike.es',
+        AUTH_URL: 'https://lovilike.es',
+        AUTH_TRUST_HOST: 'true',
+        NEXTAUTH_SECRET: 'dev-secret-lovilike-2024',
+        NEXT_PUBLIC_APP_URL: 'https://lovilike.es',
+        NEXT_PUBLIC_API_URL: 'https://lovilike.es/api'
       },
       // Logs
       error_file: '/home/developer/lovilike-dev/logs/error.log',
