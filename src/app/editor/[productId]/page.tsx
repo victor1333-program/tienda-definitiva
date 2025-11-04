@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useSearchParams } from "next/navigation"
+import { useParams, useSearchParams, useRouter } from "next/navigation"
 import useSWR from "swr"
 import fetcher from "@/lib/fetcher"
 import ZakekeAdvancedEditor from "@/components/editor/ZakekeAdvancedEditor"
@@ -19,6 +19,9 @@ interface Product {
   isPersonalizable?: boolean
   personalizationData?: any
   personalizationSettings?: any
+  // Stock principal (para productos sin variantes)
+  stock: number
+  trackInventory: boolean
   sides?: Array<{
     id: string
     name: string
@@ -64,11 +67,23 @@ interface Product {
 export default function EditorPage() {
   const params = useParams()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const productId = params.productId as string
   const templateId = searchParams.get('template')
+  const designId = searchParams.get('designId')
   const [activeSideId, setActiveSideId] = useState('')
   const [showSizeModal, setShowSizeModal] = useState(false)
   const { addItem } = useCartStore()
+
+  // Mostrar mensaje si se está editando un diseño guardado
+  useEffect(() => {
+    if (designId) {
+      toast.success('Editando diseño guardado del carrito', {
+        duration: 3000,
+        icon: '🎨'
+      })
+    }
+  }, [designId])
 
   const { data, error, isLoading } = useSWR(
     productId ? `/api/products/public/${productId}?include=personalization,variants` : null,
@@ -295,11 +310,13 @@ export default function EditorPage() {
             >
               Guardar
             </button>
-            <button 
+            <button
               onClick={() => setShowSizeModal(true)}
               className="bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-orange-700 transition-colors"
             >
-              Elegir talla y Cantidad
+              {product?.variants && product.variants.length > 0 && product.variants.some(v => v.size)
+                ? 'Elegir talla y Cantidad'
+                : 'Elegir Cantidad'}
             </button>
           </div>
         </div>
@@ -312,9 +329,11 @@ export default function EditorPage() {
         variants={product?.variants || []}
         productName={product?.name || 'Producto'}
         basePrice={product?.basePrice || 0}
+        productStock={product?.stock || 0}
+        productId={product?.id}
         onAddToCart={(selectedItems) => {
           // Adding selected items to cart
-          
+
           // Add each selected item to the cart
           selectedItems.forEach((item) => {
             addItem({
@@ -330,9 +349,14 @@ export default function EditorPage() {
               customDesignId: `design-${Date.now()}` // Temporary design ID
             })
           })
-          
+
           const totalItems = selectedItems.reduce((total, item) => total + item.quantity, 0)
           toast.success(`${totalItems} artículo(s) añadido(s) al carrito`)
+
+          // Redirigir al carrito después de 500ms
+          setTimeout(() => {
+            router.push('/carrito')
+          }, 500)
         }}
       />
     </div>

@@ -182,10 +182,10 @@ export const generalApiLimiter = new RateLimiter({
   message: 'Demasiadas solicitudes a la API. Intenta de nuevo en 15 minutos.'
 })
 
-// Autenticación - Configuración más permisiva para desarrollo
+// Autenticación - Configuración más permisiva para desarrollo y producción
 export const authLimiter = new RateLimiter({
   windowMs: process.env.NODE_ENV === 'development' ? 5 * 60 * 1000 : 15 * 60 * 1000, // 5min en dev, 15min en prod
-  maxRequests: process.env.NODE_ENV === 'development' ? 100 : 20, // 100 en dev, 20 en prod
+  maxRequests: process.env.NODE_ENV === 'development' ? 100 : 100, // 100 intentos en ambos modos
   message: 'Demasiados intentos de autenticación. Intenta de nuevo en unos minutos.'
 })
 

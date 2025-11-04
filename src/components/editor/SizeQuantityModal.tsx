@@ -22,7 +22,9 @@ interface SizeQuantityModalProps {
   variants: Variant[]
   productName: string
   basePrice: number
-  onAddToCart: (selectedItems: Array<{ variantId: string; quantity: number; size: string; price: number }>) => void
+  productStock?: number // Stock principal del producto (para productos sin variantes)
+  productId?: string // ID del producto (para productos sin variantes)
+  onAddToCart: (selectedItems: Array<{ variantId?: string; quantity: number; size: string; price: number }>) => void
 }
 
 export default function SizeQuantityModal({
@@ -31,20 +33,121 @@ export default function SizeQuantityModal({
   variants,
   productName,
   basePrice,
+  productStock = 0,
+  productId,
   onAddToCart
 }: SizeQuantityModalProps) {
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({})
   const [showSizeGuide, setShowSizeGuide] = useState(false)
+  const [simpleQuantity, setSimpleQuantity] = useState(1) // Para productos sin variantes
+
+  // Detectar si el producto tiene variantes con tallas
+  const hasVariants = variants && variants.length > 0
 
   // Reset quantities when modal opens
   useEffect(() => {
     if (isOpen) {
       setSelectedQuantities({})
       setShowSizeGuide(false)
+      setSimpleQuantity(1)
     }
   }, [isOpen])
 
   if (!isOpen) return null
+
+  // Si no hay variantes, mostrar un selector simple
+  if (!hasVariants) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-md w-full">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Elegir cantidad
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-900 mb-3">
+                Cantidad
+              </label>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setSimpleQuantity(Math.max(1, simpleQuantity - 1))}
+                  disabled={simpleQuantity <= 1}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center border ${
+                    simpleQuantity <= 1
+                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Minus className="w-5 h-5" />
+                </button>
+
+                <span className="text-2xl font-semibold w-16 text-center">
+                  {simpleQuantity}
+                </span>
+
+                <button
+                  onClick={() => setSimpleQuantity(Math.min(productStock, simpleQuantity + 1))}
+                  disabled={simpleQuantity >= productStock}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center border ${
+                    simpleQuantity >= productStock
+                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                {productStock} disponibles
+              </p>
+            </div>
+
+            {/* Summary */}
+            <div className="border-t border-gray-200 pt-4 mb-6">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold text-gray-900">Total:</span>
+                <span className="text-lg font-bold text-gray-900">
+                  €{(basePrice * simpleQuantity).toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {/* Add to cart button */}
+            <button
+              onClick={() => {
+                onAddToCart([{
+                  variantId: undefined,
+                  quantity: simpleQuantity,
+                  size: 'Estándar',
+                  price: basePrice
+                }])
+                onClose()
+              }}
+              disabled={productStock <= 0}
+              className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors ${
+                productStock <= 0
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-orange-600 text-white hover:bg-orange-700'
+              }`}
+            >
+              {productStock <= 0 ? 'Sin stock' : 'Añadir a la cesta'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Group variants by size
   const sizeGroups = variants.reduce((acc, variant) => {

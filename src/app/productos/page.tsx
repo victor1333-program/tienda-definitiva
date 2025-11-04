@@ -38,6 +38,9 @@ interface Product {
   }
   isCustomizable: boolean
   tags: string[]
+  // Stock principal (para productos sin variantes)
+  stock: number
+  trackInventory: boolean
   variants: {
     id: string
     name: string
@@ -110,30 +113,50 @@ export default function ProductsPage() {
   }
 
   const handleAddToCart = (product: Product, variantId?: string) => {
-    const variant = variantId 
-      ? product.variants.find(v => v.id === variantId)
-      : product.variants[0]
+    // Si tiene variantes, usar la variante seleccionada
+    if (product.variants && product.variants.length > 0) {
+      const variant = variantId
+        ? product.variants.find(v => v.id === variantId)
+        : product.variants[0]
 
-    if (!variant) {
-      toast.error('Variante no disponible')
-      return
+      if (!variant) {
+        toast.error('Variante no disponible')
+        return
+      }
+
+      if (variant.stock <= 0) {
+        toast.error('Producto agotado')
+        return
+      }
+
+      addItem({
+        id: `${product.id}-${variant.id}`,
+        productId: product.id,
+        variantId: variant.id,
+        name: product.name,
+        variant: variant.name,
+        price: variant.price,
+        image: product.images[0] || '/placeholder-product.png',
+        quantity: 1
+      })
+    } else {
+      // Producto sin variantes, usar stock principal
+      if (product.stock <= 0) {
+        toast.error('Producto agotado')
+        return
+      }
+
+      addItem({
+        id: product.id,
+        productId: product.id,
+        variantId: undefined,
+        name: product.name,
+        variant: 'Estándar',
+        price: product.basePrice,
+        image: product.images[0] || '/placeholder-product.png',
+        quantity: 1
+      })
     }
-
-    if (variant.stock <= 0) {
-      toast.error('Producto agotado')
-      return
-    }
-
-    addItem({
-      id: `${product.id}-${variant.id}`,
-      productId: product.id,
-      variantId: variant.id,
-      name: product.name,
-      variant: variant.name,
-      price: variant.price,
-      image: product.images[0] || '/placeholder-product.png',
-      quantity: 1
-    })
 
     toast.success('Producto añadido al carrito')
   }
@@ -297,7 +320,7 @@ export default function ProductsPage() {
                         <Button
                           size="sm"
                           onClick={() => handleAddToCart(product)}
-                          disabled={product.variants[0]?.stock <= 0}
+                          disabled={(product.variants.length > 0 ? product.variants[0]?.stock : product.stock) <= 0}
                           className="bg-primary-600 hover:bg-primary-700 text-white shadow-lg"
                         >
                           <ShoppingCart className="w-3 h-3 mr-1" />
@@ -319,12 +342,19 @@ export default function ProductsPage() {
                       {product.isCustomizable && (
                         <Badge className="bg-purple-100 text-purple-800">Personalizable</Badge>
                       )}
-                      {product.variants[0]?.stock <= 5 && product.variants[0]?.stock > 0 && (
-                        <Badge variant="destructive">Últimas unidades</Badge>
-                      )}
-                      {product.variants[0]?.stock <= 0 && (
-                        <Badge variant="secondary">Agotado</Badge>
-                      )}
+                      {(() => {
+                        const availableStock = product.variants.length > 0 ? product.variants[0]?.stock : product.stock
+                        return (
+                          <>
+                            {availableStock <= 5 && availableStock > 0 && (
+                              <Badge variant="destructive">Últimas unidades</Badge>
+                            )}
+                            {availableStock <= 0 && (
+                              <Badge variant="secondary">Agotado</Badge>
+                            )}
+                          </>
+                        )
+                      })()}
                     </div>
 
                     {/* Wishlist & Comparison */}
@@ -453,7 +483,7 @@ export default function ProductsPage() {
                         <Button
                           size="sm"
                           onClick={() => handleAddToCart(product)}
-                          disabled={product.variants[0]?.stock <= 0}
+                          disabled={(product.variants.length > 0 ? product.variants[0]?.stock : product.stock) <= 0}
                           className="w-full"
                         >
                           <ShoppingCart className="w-4 h-4 mr-1" />

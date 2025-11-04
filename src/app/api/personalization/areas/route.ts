@@ -98,9 +98,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
     const body = await request.json()
-    // Data log removed
+    console.log('📝 Creating area with name:', body.name)
     const validatedData = createAreaSchema.parse(body)
-    // Data log removed
+    console.log('✅ Validated area name:', validatedData.name)
 
     // Verificar que el lado existe
     const side = await db.productSide.findUnique({

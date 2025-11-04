@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const session = await auth()
     // Temporarily disable authentication for testing
     /*
-    if (!session?.user || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+    if (!session?.user || (session.user.role !== 'ADMIN' && role !== 'SUPER_ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
     */
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     const session = await auth()
     // Temporarily disable authentication for testing
     /*
-    if (!session?.user || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+    if (!session?.user || (session.user.role !== 'ADMIN' && role !== 'SUPER_ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
     */

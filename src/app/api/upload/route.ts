@@ -117,7 +117,7 @@ const postHandler = async (request: NextRequest) => {
     })
 
     // Manejo para archivos de workshop (single file con type)
-    if (type && file) {
+    if (type && file && file.size > 0) {
       validateWorkshopFile(file, type)
 
       // Para archivos que no son imágenes de referencia, guardar localmente
@@ -158,9 +158,12 @@ const postHandler = async (request: NextRequest) => {
     }
 
     // Manejo legacy para múltiples archivos de imágenes
-    const filesToProcess = files.length > 0 ? files : (file ? [file] : [])
-    
+    const filesToProcess = files.length > 0 ? files : (file && file.size > 0 ? [file] : [])
+
+    console.log('Files to process:', filesToProcess.length)
+
     if (!filesToProcess.length) {
+      console.error('No files to process')
       return NextResponse.json(
         { error: 'No se encontraron archivos' },
         { status: 400 }
@@ -169,64 +172,29 @@ const postHandler = async (request: NextRequest) => {
 
     // Validar archivos antes de procesarlos
     for (const fileItem of filesToProcess) {
+      console.log('Validating file:', fileItem.name, 'size:', fileItem.size)
       await validateFile(fileItem)
-    }
-
-    // Crear directorios si no existen
-    const uploadsDir = join(process.cwd(), 'public', 'uploads')
-    const folderDir = join(uploadsDir, folder)
-    
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
-    }
-    
-    if (!existsSync(folderDir)) {
-      await mkdir(folderDir, { recursive: true })
     }
 
     let results
 
     if (filesToProcess.length === 1) {
-      // Subir archivo único localmente
+      // Subir archivo único a Cloudinary
       const fileItem = filesToProcess[0]
-      
-      // Generar nombre único
-      const timestamp = Date.now()
-      const randomString = Math.random().toString(36).substring(2, 15)
-      const fileExtension = '.' + fileItem.name.split('.').pop()?.toLowerCase()
-      const fileName = `${timestamp}-${randomString}${fileExtension}`
-      const filePath = join(folderDir, fileName)
+      const buffer = await fileToBuffer(fileItem)
 
-      // Guardar archivo
-      const bytes = await fileItem.arrayBuffer()
-      const buffer = Buffer.from(bytes)
-      await writeFile(filePath, buffer)
-
-      // Retornar URL pública
-      const url = `/uploads/${folder}/${fileName}`
-      results = { secure_url: url }
+      console.log('Uploading to Cloudinary...', { folder, fileName: fileItem.name })
+      results = await uploadImage(buffer, folder)
+      console.log('File uploaded successfully to Cloudinary:', results.secure_url)
     } else {
-      // Subir múltiples archivos localmente
-      const uploadedFiles = []
-      
-      for (const fileItem of filesToProcess) {
-        const timestamp = Date.now()
-        const randomString = Math.random().toString(36).substring(2, 15)
-        const fileExtension = '.' + fileItem.name.split('.').pop()?.toLowerCase()
-        const fileName = `${timestamp}-${randomString}${fileExtension}`
-        const filePath = join(folderDir, fileName)
+      // Subir múltiples archivos a Cloudinary
+      const buffers = await Promise.all(
+        filesToProcess.map(fileItem => fileToBuffer(fileItem))
+      )
 
-        // Guardar archivo
-        const bytes = await fileItem.arrayBuffer()
-        const buffer = Buffer.from(bytes)
-        await writeFile(filePath, buffer)
-
-        // Agregar URL pública
-        const url = `/uploads/${folder}/${fileName}`
-        uploadedFiles.push({ secure_url: url })
-      }
-      
-      results = uploadedFiles
+      console.log('Uploading multiple files to Cloudinary...', { count: buffers.length, folder })
+      results = await uploadMultipleImages(buffers, folder)
+      console.log('Files uploaded successfully to Cloudinary:', results.length)
     }
 
     return NextResponse.json({

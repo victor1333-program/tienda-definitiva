@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 !.env.production.example
 
 # vercel
@@ -74,8 +75,9 @@ DEPLOY-GUIDE.md
 
 # VPS specific
 ecosystem.config.js.backup
-backup_*.sql
-backup_*.tar.gz
+# No incluir backups de base de datos (contienen datos sensibles)
+backups/*.sql
+backups/*.tar.gz
 
 # SSL certificates
 *.pem

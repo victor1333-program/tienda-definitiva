@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { Upload, X, Image as ImageIcon, Video, FileText, Move, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,15 +22,20 @@ interface MediaManagerProps {
   onMediaChange?: (media: MediaFile[]) => void
 }
 
-export default function MediaManager({ 
-  productId, 
-  media: initialMedia = [], 
-  onMediaChange 
+export default function MediaManager({
+  productId,
+  media: initialMedia = [],
+  onMediaChange
 }: MediaManagerProps) {
   const [media, setMedia] = useState<MediaFile[]>(initialMedia)
   const [isUploading, setIsUploading] = useState(false)
   const [draggedItem, setDraggedItem] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Sincronizar el estado interno cuando cambien los props
+  useEffect(() => {
+    setMedia(initialMedia)
+  }, [initialMedia])
 
   const updateMedia = (newMedia: MediaFile[]) => {
     setMedia(newMedia)

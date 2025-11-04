@@ -766,67 +766,80 @@ export default function ZakekeAdvancedEditor({
     return areaCoords
   }
 
-  // Función para aplicar restricciones de área a un objeto
+  // Función para aplicar restricciones de área a un objeto - BLOQUEO ABSOLUTO
   const enforceAreaConstraints = (obj: any) => {
     if (!canvas || !obj) return
-    
+
     // No restringir elementos del área visual (que son solo indicadores)
-    if (obj.id && obj.id.startsWith('print-area-')) {
+    if (obj.id && (obj.id.startsWith('print-area-border-') || obj.id.startsWith('print-area-label-'))) {
       return
     }
-    
+
     // No restringir elementos marcados como excludeFromExport
     if (obj.excludeFromExport) {
       return
     }
-    
+
     // Buscar cualquier área de impresión disponible para aplicar restricciones
     const availableAreas = activeSide?.printAreas || []
     const areaToUse = activePrintArea || (availableAreas.length > 0 ? availableAreas[0] : null)
-    
+
     if (!areaToUse) return
-    
+
     // Obtener coordenadas del área usando la función helper
     const areaCoords = getAreaCoordinates(canvas, areaToUse)
     if (!areaCoords) return
-    
+
     // Calcular los límites efectivos del objeto
     const objBounds = obj.getBoundingRect()
-    
+
     // Límites del área de impresión
     const areaLeft = areaCoords.x
     const areaTop = areaCoords.y
     const areaRight = areaCoords.x + areaCoords.width
     const areaBottom = areaCoords.y + areaCoords.height
-    
-    // Calcular nueva posición restringida de forma simple
+
+    // Calcular nueva posición forzada dentro del área
     let newLeft = obj.left
     let newTop = obj.top
-    
-    // Restringir horizontalmente
+
+    // BLOQUEO ABSOLUTO - Forzar dentro del área
     if (objBounds.left < areaLeft) {
       newLeft = obj.left + (areaLeft - objBounds.left)
-    } else if (objBounds.left + objBounds.width > areaRight) {
-      newLeft = obj.left - (objBounds.left + objBounds.width - areaRight)
     }
-    
-    // Restringir verticalmente
+    if (objBounds.left + objBounds.width > areaRight) {
+      newLeft = obj.left - ((objBounds.left + objBounds.width) - areaRight)
+    }
+
     if (objBounds.top < areaTop) {
       newTop = obj.top + (areaTop - objBounds.top)
-    } else if (objBounds.top + objBounds.height > areaBottom) {
-      newTop = obj.top - (objBounds.top + objBounds.height - areaBottom)
     }
-    
-    // Solo aplicar restricciones si es necesario
+    if (objBounds.top + objBounds.height > areaBottom) {
+      newTop = obj.top - ((objBounds.top + objBounds.height) - areaBottom)
+    }
+
+    // Aplicar restricciones si es necesario
     if (newLeft !== obj.left || newTop !== obj.top) {
       obj.set({
         left: newLeft,
         top: newTop
       })
       obj.setCoords()
-      // No renderizar aquí para evitar múltiples renders
     }
   }
+
+  // Helper para traer áreas de impresión al frente - SIEMPRE VISIBLES
+  const bringPrintAreasToFront = useCallback((fabricCanvas: any) => {
+    if (!fabricCanvas) return
+    const allObjects = fabricCanvas.getObjects()
+    // Primero traer los bordes
+    allObjects.forEach((o: any) => {
+      if (o.id && (o.id.startsWith('print-area-border-') || o.id.startsWith('print-area-label-'))) {
+        o.bringToFront()
+      }
+    })
+    fabricCanvas.renderAll()
+  }, [])
 
   // Funciones para guías de centrado
   const showCenteringGuides = (fabricCanvas: any, obj: any, areaCoords: AbsoluteCoordinates) => {
@@ -1070,36 +1083,77 @@ export default function ZakekeAdvancedEditor({
       }
     }
     
-    // Configurar restricciones de movimiento nativas de Fabric.js
+    // Configurar restricciones de movimiento nativas de Fabric.js con bloqueo absoluto
     obj.on('moving', function() {
       const areaBounds = getAreaBounds()
       if (!areaBounds) return
-      
+
       const objBounds = this.getBoundingRect()
-      
-      // Calcular nueva posición restringida
+
+      // Calcular nueva posición limitada al área
       let newLeft = this.left
       let newTop = this.top
-      
-      // Restringir horizontalmente
+
+      // Restringir horizontalmente - BLOQUEO ABSOLUTO
       if (objBounds.left < areaBounds.left) {
         newLeft = this.left + (areaBounds.left - objBounds.left)
-      } else if (objBounds.left + objBounds.width > areaBounds.right) {
+      }
+      if (objBounds.left + objBounds.width > areaBounds.right) {
         newLeft = this.left - ((objBounds.left + objBounds.width) - areaBounds.right)
       }
-      
-      // Restringir verticalmente
+
+      // Restringir verticalmente - BLOQUEO ABSOLUTO
       if (objBounds.top < areaBounds.top) {
         newTop = this.top + (areaBounds.top - objBounds.top)
-      } else if (objBounds.top + objBounds.height > areaBounds.bottom) {
+      }
+      if (objBounds.top + objBounds.height > areaBounds.bottom) {
         newTop = this.top - ((objBounds.top + objBounds.height) - areaBounds.bottom)
       }
-      
-      // Aplicar nueva posición
+
+      // Aplicar restricciones EN TIEMPO REAL
       this.set({
         left: newLeft,
         top: newTop
       })
+      this.setCoords()
+    })
+
+    // Configurar restricciones de escalado nativas de Fabric.js con bloqueo absoluto
+    obj.on('scaling', function() {
+      const areaBounds = getAreaBounds()
+      if (!areaBounds) return
+
+      const objBounds = this.getBoundingRect()
+
+      // Verificar si el objeto se sale del área al escalar
+      const wouldExceedLeft = objBounds.left < areaBounds.left
+      const wouldExceedTop = objBounds.top < areaBounds.top
+      const wouldExceedRight = objBounds.left + objBounds.width > areaBounds.right
+      const wouldExceedBottom = objBounds.top + objBounds.height > areaBounds.bottom
+
+      if (wouldExceedLeft || wouldExceedTop || wouldExceedRight || wouldExceedBottom) {
+        // Calcular el factor de escala máximo permitido
+        const availableWidth = areaBounds.right - areaBounds.left
+        const availableHeight = areaBounds.bottom - areaBounds.top
+
+        // Obtener dimensiones base del objeto
+        const baseWidth = this.width * this.scaleX
+        const baseHeight = this.height * this.scaleY
+
+        // Calcular escala máxima permitida
+        const maxScaleX = availableWidth / this.width
+        const maxScaleY = availableHeight / this.height
+        const maxScale = Math.min(maxScaleX, maxScaleY)
+
+        // Si el escalado actual excede el máximo, limitarlo
+        if (this.scaleX > maxScale || this.scaleY > maxScale) {
+          this.set({
+            scaleX: Math.min(this.scaleX, maxScale),
+            scaleY: Math.min(this.scaleY, maxScale)
+          })
+          this.setCoords()
+        }
+      }
     })
   }
 
@@ -1403,28 +1457,33 @@ export default function ZakekeAdvancedEditor({
         if (obj && enforceAreaConstraints) {
           enforceAreaConstraints(obj)
         }
-        
+
         // Snap magnético sutil al soltar el objeto
         if (obj && !obj.excludeFromExport && !obj.id?.startsWith('print-area-')) {
           applySoftSnap(fabricCanvas, obj)
         }
-        
+
         saveToHistory(fabricCanvas)
       }
-      
+
       // Resetear estado de snap al terminar el movimiento
       setIsDragging(false)
       setSnapActive({ x: false, y: false })
-      
+
       // Limpiar guías de centrado
       clearCenteringGuides(fabricCanvas)
-      
+
+      // Traer áreas de impresión al frente después de modificar
+      setTimeout(() => {
+        bringPrintAreasToFront(fabricCanvas)
+      }, 10)
+
       // Actualizar posición del icono de máscara si existe después de cualquier modificación
       const obj = e.target
       if (obj && obj.isMask && obj.maskPlaceholderId && !obj.maskImageSrc) {
         updateMaskPlaceholderPosition(obj, fabricCanvas)
       }
-      
+
       updateCanvasElements()
     })
 
@@ -1436,11 +1495,16 @@ export default function ZakekeAdvancedEditor({
           // Configurar restricciones inmediatamente
           setupObjectConstraints(obj)
           obj._hasConstraints = true
-          
+
           // También aplicar restricciones iniciales
           if (enforceAreaConstraints) {
             setTimeout(() => enforceAreaConstraints(obj), 10)
           }
+
+          // Traer las áreas de impresión al frente para que siempre sean visibles
+          setTimeout(() => {
+            bringPrintAreasToFront(fabricCanvas)
+          }, 50)
         }
         saveToHistory(fabricCanvas)
         // Update elements immediately
@@ -1461,20 +1525,20 @@ export default function ZakekeAdvancedEditor({
     })
 
     
-    // Evento de movimiento global (como respaldo)
+    // Evento de movimiento global con restricciones estrictas
     fabricCanvas.on('object:moving', (e: any) => {
       const obj = e.target
-      
+
       // No restringir elementos del área visual (que son solo indicadores)
-      if (obj.id && obj.id.startsWith('print-area-')) {
+      if (obj.id && obj.id?.startsWith('print-area-border-') || obj.id?.startsWith('print-area-label-')) {
         return
       }
-      
+
       // No restringir elementos marcados como excludeFromExport
       if (obj.excludeFromExport) {
         return
       }
-      
+
       // Snap magnético con resistencia controlada
       if (fabricCanvas && !isSnapping.current) {
         const now = Date.now()
@@ -1561,54 +1625,59 @@ export default function ZakekeAdvancedEditor({
       }
     })
 
-    // Restringir escalado de objetos dentro del área de impresión
+    // Guardar estado antes de escalar
     fabricCanvas.on('object:scaling', (e: any) => {
+      const obj = e.target
+
+      // No restringir elementos del área visual
+      if (obj.id && obj.id?.startsWith('print-area-border-') || obj.id?.startsWith('print-area-label-')) return
+      if (obj.excludeFromExport) return
+
       // Buscar cualquier área de impresión disponible para aplicar restricciones
       const availableAreas = activeSide?.printAreas || []
       const areaToUse = activePrintArea || (availableAreas.length > 0 ? availableAreas[0] : null)
-      
+
       if (areaToUse) {
-        const obj = e.target
-        
         // Obtener coordenadas del área usando la función helper
         const areaCoords = getAreaCoordinates(fabricCanvas, areaToUse)
         if (!areaCoords) return
-        
+
         // Calcular nuevas dimensiones después del escalado
         const newBounds = obj.getBoundingRect()
-        
+
         // Límites del área de impresión
         const areaLeft = areaCoords.x
         const areaTop = areaCoords.y
         const areaRight = areaCoords.x + areaCoords.width
         const areaBottom = areaCoords.y + areaCoords.height
-        
-        // Si el objeto escalado se sale del área, limitar el escalado
-        if (newBounds.left < areaLeft || 
-            newBounds.top < areaTop || 
-            newBounds.left + newBounds.width > areaRight || 
+
+        // Si el objeto escalado se sale del área, revertir el escalado
+        if (newBounds.left < areaLeft ||
+            newBounds.top < areaTop ||
+            newBounds.left + newBounds.width > areaRight ||
             newBounds.top + newBounds.height > areaBottom) {
-          
-          // Calcular el factor de escala máximo permitido para mantener el objeto dentro del área
-          const maxScaleX = areaCoords.width / obj.width
-          const maxScaleY = areaCoords.height / obj.height
-          const maxScale = Math.min(maxScaleX, maxScaleY, 1) // No permitir escalado mayor al original si no cabe
-          
-          // Limitar la escala actual
-          const limitedScaleX = Math.min(obj.scaleX, maxScale)
-          const limitedScaleY = Math.min(obj.scaleY, maxScale)
-          
-          obj.set({
-            scaleX: limitedScaleX,
-            scaleY: limitedScaleY
-          })
+
+          // Revertir a las escalas guardadas
+          if (obj._lastValidScaleX !== undefined && obj._lastValidScaleY !== undefined) {
+            obj.set({
+              scaleX: obj._lastValidScaleX,
+              scaleY: obj._lastValidScaleY,
+              left: obj._lastValidLeft,
+              top: obj._lastValidTop
+            })
+          }
+        } else {
+          // Guardar escalas válidas
+          obj._lastValidScaleX = obj.scaleX
+          obj._lastValidScaleY = obj.scaleY
+          obj._lastValidLeft = obj.left
+          obj._lastValidTop = obj.top
         }
-        
+
         obj.setCoords()
       }
-      
+
       // Actualizar posición del icono de máscara si existe
-      const obj = e.target
       if (obj.isMask && obj.maskPlaceholderId && !obj.maskImageSrc) {
         updateMaskPlaceholderPosition(obj, fabricCanvas)
       }
@@ -2188,29 +2257,35 @@ export default function ZakekeAdvancedEditor({
         top: absoluteCoords.y,
         width: absoluteCoords.width,
         height: absoluteCoords.height,
-        fill: 'transparent', // Sin relleno para una visualización más realista
+        fill: 'transparent',
         stroke: '#FF6B35',
-        strokeWidth: 2,
-        strokeDashArray: [5, 5],
+        strokeWidth: 3, // Más grueso para mejor visibilidad
+        strokeDashArray: [10, 5],
         selectable: false,
-        evented: false,
+        evented: false, // No intercepta eventos de mouse
         excludeFromExport: true,
-        id: `print-area-${area.id}`,
-        name: area.name
+        id: `print-area-border-${area.id}`,
+        name: area.name,
+        hoverCursor: 'default',
+        moveCursor: 'default'
       })
 
       fabricCanvas.add(areaRect)
 
       // Agregar etiqueta del área
       const label = new fabric.Text(area.name, {
-        left: absoluteCoords.x,
-        top: absoluteCoords.y - 20,
-        fontSize: 12,
+        left: absoluteCoords.x + 5,
+        top: absoluteCoords.y + 5,
+        fontSize: 14,
         fill: '#FF6B35',
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        padding: 5,
         selectable: false,
-        evented: false,
-        excludeFromExport: true
+        evented: false, // No intercepta eventos de mouse
+        excludeFromExport: true,
+        id: `print-area-label-${area.id}`,
+        hoverCursor: 'default',
+        moveCursor: 'default'
       })
 
       fabricCanvas.add(label)
@@ -2221,9 +2296,67 @@ export default function ZakekeAdvancedEditor({
       setActivePrintArea(printAreas[0])
     }
 
-    fabricCanvas.renderAll()
-  }, [])
+    // Asegurar que todas las áreas estén al frente
+    setTimeout(() => {
+      bringPrintAreasToFront(fabricCanvas)
+    }, 100)
 
+    fabricCanvas.renderAll()
+  }, [bringPrintAreasToFront])
+
+
+  // Helper function to fit object within print area bounds
+  const fitObjectInArea = useCallback((obj: any, areaCoords: AbsoluteCoordinates, options: { centerInArea?: boolean, maxSizePercent?: number } = {}) => {
+    const { centerInArea = true, maxSizePercent = 0.9 } = options
+
+    // Asegurar que el objeto tenga coordenadas actualizadas
+    obj.setCoords()
+
+    // Obtener dimensiones actuales del objeto (considerando escala y rotación)
+    const objBounds = obj.getBoundingRect()
+
+    // Calcular el tamaño máximo permitido (por defecto 90% del área)
+    const maxWidth = areaCoords.width * maxSizePercent
+    const maxHeight = areaCoords.height * maxSizePercent
+
+    // Si el objeto es más grande que el área, escalarlo
+    let scaleAdjustment = 1
+    if (objBounds.width > maxWidth || objBounds.height > maxHeight) {
+      const scaleX = maxWidth / objBounds.width
+      const scaleY = maxHeight / objBounds.height
+      scaleAdjustment = Math.min(scaleX, scaleY)
+
+      // Aplicar nueva escala manteniendo proporción
+      obj.scaleX = (obj.scaleX || 1) * scaleAdjustment
+      obj.scaleY = (obj.scaleY || 1) * scaleAdjustment
+      obj.setCoords()
+    }
+
+    // Centrar en el área si se solicita
+    if (centerInArea) {
+      const updatedBounds = obj.getBoundingRect()
+      const left = areaCoords.x + (areaCoords.width - updatedBounds.width) / 2
+      const top = areaCoords.y + (areaCoords.height - updatedBounds.height) / 2
+
+      // Ajustar posición considerando el origen del objeto
+      const deltaX = left - updatedBounds.left
+      const deltaY = top - updatedBounds.top
+
+      obj.set({
+        left: obj.left + deltaX,
+        top: obj.top + deltaY
+      })
+      obj.setCoords()
+    }
+
+    // Guardar el estado válido del objeto
+    obj._lastValidLeft = obj.left
+    obj._lastValidTop = obj.top
+    obj._lastValidScaleX = obj.scaleX
+    obj._lastValidScaleY = obj.scaleY
+
+    return obj
+  }, [])
 
   // Tool functions
   const addText = () => {
@@ -2257,10 +2390,11 @@ export default function ZakekeAdvancedEditor({
 
     const defaultText = textContent || 'Texto nuevo'
     const isDefaultText = defaultText === 'Texto nuevo' || defaultText === 'Texto de ejemplo'
-    
+
+    // Crear el texto inicialmente en posición temporal
     const textObj = new fabric.IText(defaultText, {
-      left: areaCoords.x + 20, // Margen de 20px desde el borde izquierdo del área
-      top: areaCoords.y + 20,  // Margen de 20px desde el borde superior del área
+      left: 0,
+      top: 0,
       fontSize: fontSize,
       fill: isDefaultText ? '#999999' : textColor, // Color más tenue para texto de ejemplo
       fontFamily: fontFamily,
@@ -2270,6 +2404,9 @@ export default function ZakekeAdvancedEditor({
       editable: true,
       isPlaceholder: isDefaultText // Marcar como placeholder
     })
+
+    // Ajustar el texto al área de impresión
+    fitObjectInArea(textObj, areaCoords, { centerInArea: true, maxSizePercent: 0.9 })
 
     // Evento para limpiar el texto cuando se hace doble click para editar
     textObj.on('editing:entered', function() {
@@ -2286,15 +2423,20 @@ export default function ZakekeAdvancedEditor({
       }
     })
 
-    // Evento cuando termina la edición para evitar texto vacío
+    // Evento cuando termina la edición para evitar texto vacío y verificar límites
     textObj.on('editing:exited', function() {
       if (this.text.trim() === '') {
         // Si queda vacío, volver al texto de ejemplo
         this.text = 'Texto nuevo'
         this.fill = '#999999'
         this.isPlaceholder = true
-        canvas.renderAll()
       }
+      // Asegurar que el texto modificado siga dentro del área
+      const areaCoords = getAreaCoordinates(canvas, activePrintArea)
+      if (areaCoords) {
+        fitObjectInArea(this, areaCoords, { centerInArea: false, maxSizePercent: 1.0 })
+      }
+      canvas.renderAll()
     })
 
     canvas.add(textObj)
@@ -2323,9 +2465,10 @@ export default function ZakekeAdvancedEditor({
     }
 
     let shape: any
+    // Crear las formas en posición temporal, luego ajustar al área
     const baseProps = {
-      left: areaCoords.x + 20, // Margen de 20px desde el borde izquierdo del área
-      top: areaCoords.y + 20,  // Margen de 20px desde el borde superior del área
+      left: 0,
+      top: 0,
       fill: shapeColor,
       stroke: strokeColor,
       strokeWidth: strokeWidth || 1, // Asegurar que siempre tenga al menos 1px
@@ -2649,6 +2792,9 @@ export default function ZakekeAdvancedEditor({
         break
     }
 
+    // Ajustar la forma al área de impresión
+    fitObjectInArea(shape, areaCoords, { centerInArea: true, maxSizePercent: 0.9 })
+
     canvas.add(shape)
     canvas.setActiveObject(shape)
     setSelectedObject(shape)
@@ -2724,34 +2870,17 @@ export default function ZakekeAdvancedEditor({
           return
         }
 
-        // Calcular el tamaño máximo permitido dentro del área de impresión
-        const maxWidth = areaCoords.width * 0.8 // 80% del ancho del área
-        const maxHeight = areaCoords.height * 0.8 // 80% del alto del área
-        
-        // Obtener dimensiones originales de la imagen
-        const originalWidth = img.width
-        const originalHeight = img.height
-        
-        // Calcular la escala para ajustarse al área manteniendo proporción
-        const scaleX = maxWidth / originalWidth
-        const scaleY = maxHeight / originalHeight
-        const scale = Math.min(scaleX, scaleY) // Usar la escala menor para mantener proporción
-        
-        // Centrar la imagen en el área de impresión
-        const scaledWidth = originalWidth * scale
-        const scaledHeight = originalHeight * scale
-        const left = areaCoords.x + (areaCoords.width - scaledWidth) / 2
-        const top = areaCoords.y + (areaCoords.height - scaledHeight) / 2
-        
+        // Configurar propiedades de la imagen
         img.set({
-          left: left,
-          top: top,
-          scaleX: scale,
-          scaleY: scale,
+          left: 0,
+          top: 0,
           selectable: true,
           opacity: 1,
           customName: file.name.replace(/\.[^/.]+$/, "") // Usar nombre del archivo sin extensión
         })
+
+        // Ajustar la imagen al área de impresión
+        fitObjectInArea(img, areaCoords, { centerInArea: true, maxSizePercent: 0.9 })
 
         canvas.add(img)
         canvas.setActiveObject(img)
@@ -2796,32 +2925,17 @@ export default function ZakekeAdvancedEditor({
       const areaCoords = getAreaCoordinates(canvas, activePrintArea)
       if (!areaCoords) return
 
-      // Calcular escala para que la imagen se ajuste al área
-      const maxWidth = allowPersonalization ? areaCoords.width * 0.8 : 300
-      const maxHeight = allowPersonalization ? areaCoords.height * 0.8 : 300
-      
-      const scaleX = maxWidth / img.width
-      const scaleY = maxHeight / img.height
-      const scale = Math.min(scaleX, scaleY, 1)
-
-      // Centrar en el área activa
-      const left = allowPersonalization ? 
-        areaCoords.x + (areaCoords.width - img.width * scale) / 2 :
-        canvas.width / 2 - (img.width * scale) / 2
-        
-      const top = allowPersonalization ?
-        areaCoords.y + (areaCoords.height - img.height * scale) / 2 :
-        canvas.height / 2 - (img.height * scale) / 2
-
+      // Configurar propiedades de la imagen
       img.set({
-        left: left,
-        top: top,
-        scaleX: scale,
-        scaleY: scale,
+        left: 0,
+        top: 0,
         selectable: true,
         opacity: 1,
         customName: image.name // Guardar el nombre de la imagen de galería
       })
+
+      // Ajustar la imagen al área de impresión
+      fitObjectInArea(img, areaCoords, { centerInArea: true, maxSizePercent: 0.9 })
 
       canvas.add(img)
       canvas.setActiveObject(img)
@@ -2873,28 +2987,10 @@ export default function ZakekeAdvancedEditor({
         const areaCoords = getAreaCoordinates(canvas, activePrintArea)
         if (!areaCoords) return
 
-        // Calculate scale to fit the shape in the area
-        const maxWidth = allowPersonalization ? areaCoords.width * 0.3 : 100
-        const maxHeight = allowPersonalization ? areaCoords.height * 0.3 : 100
-        
-        const scaleX = maxWidth / obj.width
-        const scaleY = maxHeight / obj.height
-        const scale = Math.min(scaleX, scaleY, 1)
-
-        // Center in the active area
-        const left = allowPersonalization ? 
-          areaCoords.x + (areaCoords.width - obj.width * scale) / 2 :
-          canvas.width / 2 - (obj.width * scale) / 2
-          
-        const top = allowPersonalization ?
-          areaCoords.y + (areaCoords.height - obj.height * scale) / 2 :
-          canvas.height / 2 - (obj.height * scale) / 2
-
+        // Configurar propiedades del objeto SVG
         obj.set({
-          left: left,
-          top: top,
-          scaleX: scale,
-          scaleY: scale,
+          left: 0,
+          top: 0,
           selectable: true,
           opacity: 1,
           fill: shapeColor,
@@ -2909,6 +3005,9 @@ export default function ZakekeAdvancedEditor({
           maskImageY: 0,
           maskImageScale: 1
         })
+
+        // Ajustar la forma al área de impresión
+        fitObjectInArea(obj, areaCoords, { centerInArea: true, maxSizePercent: 0.9 })
 
         canvas.add(obj)
         canvas.setActiveObject(obj)
@@ -2927,28 +3026,10 @@ export default function ZakekeAdvancedEditor({
         const areaCoords = getAreaCoordinates(canvas, activePrintArea)
         if (!areaCoords) return
 
-        // Calculate scale to fit the shape in the area
-        const maxWidth = allowPersonalization ? areaCoords.width * 0.3 : 100
-        const maxHeight = allowPersonalization ? areaCoords.height * 0.3 : 100
-        
-        const scaleX = maxWidth / img.width
-        const scaleY = maxHeight / img.height
-        const scale = Math.min(scaleX, scaleY, 1)
-
-        // Center in the active area
-        const left = allowPersonalization ? 
-          areaCoords.x + (areaCoords.width - img.width * scale) / 2 :
-          canvas.width / 2 - (img.width * scale) / 2
-          
-        const top = allowPersonalization ?
-          areaCoords.y + (areaCoords.height - img.height * scale) / 2 :
-          canvas.height / 2 - (img.height * scale) / 2
-
+        // Configurar propiedades de la imagen
         img.set({
-          left: left,
-          top: top,
-          scaleX: scale,
-          scaleY: scale,
+          left: 0,
+          top: 0,
           selectable: true,
           opacity: 1,
           originalFill: null, // Para imágenes no hay fill original
@@ -2961,12 +3042,15 @@ export default function ZakekeAdvancedEditor({
           maskImageScale: 1
         })
 
+        // Ajustar la imagen al área de impresión
+        fitObjectInArea(img, areaCoords, { centerInArea: true, maxSizePercent: 0.9 })
+
         canvas.add(img)
         canvas.setActiveObject(img)
         setSelectedObject(img)
         updateObjectProperties(img)
         canvas.renderAll()
-        
+
         setShowShapesLibrary(false)
         toast.success(`Forma "${shape.name}" añadida al diseño`)
       })

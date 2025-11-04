@@ -190,45 +190,67 @@ export async function GET(request: NextRequest) {
     ])
 
     // Formatear productos para la respuesta pública
-    const formattedProducts = products.map(product => ({
-      id: product.id,
-      name: product.name,
-      slug: product.slug,
-      description: product.description,
-      basePrice: product.basePrice,
-      comparePrice: product.comparePrice,
-      images: JSON.parse(product.images || '[]'),
-      featured: product.featured,
-      topSelling: product.topSelling,
-      isCustomizable: product.isPersonalizable,
-      customizationPrice: 0, // Default value since it's not in schema
-      materialType: product.materialType,
-      tags: [], // Default empty array since not in schema
-      category: product.categories.length > 0 ? {
-        id: product.categories[0].category.id,
-        name: product.categories[0].category.name,
-        slug: product.categories[0].category.slug
-      } : null,
-      variants: product.variants.map(variant => ({
-        id: variant.id,
-        name: `${variant.size || ''} ${variant.colorName || ''}`.trim() || 'Default',
-        price: variant.price || product.basePrice,
-        color: variant.colorName,
-        size: variant.size,
-        material: variant.material,
-        stock: variant.stock
-      })),
-      sides: product.sides.length > 0 ? product.sides.map(side => ({
-        id: side.id,
-        name: side.displayName || side.name,
-        printAreas: side.printAreas
-      })) : [],
-      // Información de pricing
-      hasDiscount: product.comparePrice && product.comparePrice > product.basePrice,
-      discountPercentage: product.comparePrice && product.comparePrice > product.basePrice 
-        ? Math.round(((product.comparePrice - product.basePrice) / product.comparePrice) * 100)
+    const formattedProducts = products.map(product => {
+      // Convertir precios de string/Decimal a number
+      const basePrice = typeof product.basePrice === 'string'
+        ? parseFloat(product.basePrice)
+        : Number(product.basePrice)
+
+      const comparePrice = product.comparePrice
+        ? (typeof product.comparePrice === 'string'
+          ? parseFloat(product.comparePrice)
+          : Number(product.comparePrice))
         : null
-    }))
+
+      return {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        description: product.description,
+        basePrice: basePrice,
+        comparePrice: comparePrice,
+        images: JSON.parse(product.images || '[]'),
+        featured: product.featured,
+        topSelling: product.topSelling,
+        isCustomizable: product.isPersonalizable,
+        customizationPrice: 0, // Default value since it's not in schema
+        materialType: product.materialType,
+        tags: [], // Default empty array since not in schema
+        // Stock principal (para productos sin variantes)
+        stock: product.stock,
+        trackInventory: product.trackInventory,
+        category: product.categories.length > 0 ? {
+          id: product.categories[0].category.id,
+          name: product.categories[0].category.name,
+          slug: product.categories[0].category.slug
+        } : null,
+        variants: product.variants.map(variant => {
+          const variantPrice = variant.price
+            ? (typeof variant.price === 'string' ? parseFloat(variant.price) : Number(variant.price))
+            : basePrice
+
+          return {
+            id: variant.id,
+            name: `${variant.size || ''} ${variant.colorName || ''}`.trim() || 'Default',
+            price: variantPrice,
+            color: variant.colorName,
+            size: variant.size,
+            material: variant.material,
+            stock: variant.stock
+          }
+        }),
+        sides: product.sides.length > 0 ? product.sides.map(side => ({
+          id: side.id,
+          name: side.displayName || side.name,
+          printAreas: side.printAreas
+        })) : [],
+        // Información de pricing
+        hasDiscount: comparePrice && comparePrice > basePrice,
+        discountPercentage: comparePrice && comparePrice > basePrice
+          ? Math.round(((comparePrice - basePrice) / comparePrice) * 100)
+          : null
+      }
+    })
 
     // Calcular información de paginación
     const totalPages = Math.ceil(totalCount / limit)

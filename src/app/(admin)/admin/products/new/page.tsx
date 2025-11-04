@@ -391,28 +391,30 @@ export default function NewProductPage() {
                       <div className="relative">
                         {file.type === 'image' ? (
                           <>
-                            <img
-                              src={file.url}
-                              alt={file.name}
-                              className="w-full h-20 object-cover rounded-lg"
-                            />
+                            <div className="w-full h-40 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
+                              <img
+                                src={file.url}
+                                alt={file.name}
+                                className="max-w-full max-h-full object-contain"
+                              />
+                            </div>
                             <div className="absolute top-1 left-1">
-                              <span className="bg-gray-200 text-gray-800 text-xs px-1 py-0 rounded">
+                              <span className="bg-white/90 backdrop-blur-sm text-gray-800 text-xs px-2 py-1 rounded shadow-sm">
                                 IMG
                               </span>
                             </div>
                           </>
                         ) : (
                           <>
-                            <div className="w-full h-20 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                            <div className="w-full h-40 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
                               {file.type === 'video' ? (
-                                <Video className="w-6 h-6 text-gray-500" />
+                                <Video className="w-8 h-8 text-gray-500" />
                               ) : (
-                                <FileText className="w-6 h-6 text-gray-500" />
+                                <FileText className="w-8 h-8 text-gray-500" />
                               )}
                             </div>
                             <div className="absolute top-1 left-1">
-                              <span className="bg-gray-200 text-gray-800 text-xs px-1 py-0 rounded">
+                              <span className="bg-white/90 backdrop-blur-sm text-gray-800 text-xs px-2 py-1 rounded shadow-sm">
                                 {file.type === 'video' ? 'VID' : 'DOC'}
                               </span>
                             </div>
@@ -422,22 +424,22 @@ export default function NewProductPage() {
                           <button
                             type="button"
                             onClick={() => removeMediaFile(file.id)}
-                            className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                            className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg"
                           >
-                            <X className="w-3 h-3" />
+                            <X className="w-4 h-4" />
                           </button>
                         </div>
                         {file.type === 'image' && (
                           <button
                             type="button"
-                            className="absolute bottom-1 right-1 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-600"
+                            className="absolute bottom-1 right-1 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-600 shadow-lg"
                             onClick={() => window.open(file.url, '_blank')}
                           >
-                            <Eye className="w-3 h-3" />
+                            <Eye className="w-4 h-4" />
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-gray-600 mt-1 truncate font-medium">{file.name}</p>
+                      <p className="text-xs text-gray-600 mt-2 truncate font-medium">{file.name}</p>
                       <p className="text-xs text-gray-400">{file.type.toUpperCase()}</p>
                     </div>
                   ))}

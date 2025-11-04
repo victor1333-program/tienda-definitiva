@@ -41,7 +41,10 @@ interface MenuOption {
     id: string
     label: string
   }>
-  availableIcons: string[]
+  availableIcons: Array<{
+    id: string
+    label: string
+  }>
 }
 
 interface MenuItem {
@@ -511,8 +514,8 @@ export default function DynamicMenuEditor() {
     }
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold">Añadir Elemento de Menú</h3>
             <Button
@@ -625,7 +628,7 @@ export default function DynamicMenuEditor() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   {menuOptions?.availableIcons?.map(icon => (
-                    <option key={icon} value={icon}>{icon}</option>
+                    <option key={icon.id} value={icon.id}>{icon.label}</option>
                   ))}
                 </select>
               </div>
@@ -730,7 +733,7 @@ export default function DynamicMenuEditor() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

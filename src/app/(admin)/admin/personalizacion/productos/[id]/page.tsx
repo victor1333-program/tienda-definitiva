@@ -613,11 +613,10 @@ export default function ConfigurarProducto() {
                       <CardContent className="space-y-3">
                         {side.image2D ? (
                           <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative">
-                            <Image
+                            <img
                               src={side.image2D}
                               alt={side.name}
-                              fill
-                              className="object-cover"
+                              className="w-full h-full object-contain"
                             />
                           </div>
                         ) : (
@@ -885,12 +884,11 @@ export default function ConfigurarProducto() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Vista previa
                 </label>
-                <div className="w-full h-64 bg-gray-100 rounded-lg overflow-hidden relative">
-                  <Image
+                <div className="w-full h-64 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                  <img
                     src={previewUrl}
                     alt="Vista previa"
-                    fill
-                    className="object-contain"
+                    className="max-w-full max-h-full object-contain"
                     onError={() => {
                       setPreviewUrl("")
                       if (selectedFile) {

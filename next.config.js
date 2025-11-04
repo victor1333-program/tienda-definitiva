@@ -10,7 +10,7 @@ const nextConfig = {
   
   // Optimización para producción
   output: 'standalone',
-  
+
   // Configuración de imágenes
   images: {
     dangerouslyAllowSVG: true,
@@ -49,11 +49,14 @@ const nextConfig = {
       },
     ],
   },
-  
+
   // Optimizaciones de rendimiento
   experimental: {
     optimizeCss: true,
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
   },
   
   // Configuración de headers de seguridad

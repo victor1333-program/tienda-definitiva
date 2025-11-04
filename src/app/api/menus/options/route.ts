@@ -31,13 +31,40 @@ export async function GET(request: NextRequest) {
       { id: 'SERVICES', label: 'Servicios', url: '/services' }
     ]
 
-    // Iconos disponibles (algunos ejemplos de Lucide React)
+    // Iconos disponibles (algunos ejemplos de Lucide React) con nombres en español
     const availableIcons = [
-      'Home', 'Package', 'Users', 'Mail', 'Phone', 'Info', 'Settings',
-      'ShoppingCart', 'Heart', 'Star', 'Search', 'Menu', 'X', 'ChevronDown',
-      'ChevronRight', 'ArrowRight', 'ExternalLink', 'FileText', 'Image',
-      'Palette', 'Scissors', 'Printer', 'Shirt', 'Gift', 'Camera',
-      'Brush', 'Pen', 'Layers', 'Grid', 'List', 'Tag', 'Tags'
+      { id: 'Home', label: '🏠 Casa/Inicio' },
+      { id: 'Package', label: '📦 Paquete/Producto' },
+      { id: 'Users', label: '👥 Usuarios' },
+      { id: 'Mail', label: '✉️ Correo' },
+      { id: 'Phone', label: '📞 Teléfono' },
+      { id: 'Info', label: 'ℹ️ Información' },
+      { id: 'Settings', label: '⚙️ Configuración' },
+      { id: 'ShoppingCart', label: '🛒 Carrito de Compras' },
+      { id: 'Heart', label: '❤️ Corazón/Favoritos' },
+      { id: 'Star', label: '⭐ Estrella/Destacado' },
+      { id: 'Search', label: '🔍 Buscar' },
+      { id: 'Menu', label: '☰ Menú' },
+      { id: 'X', label: '❌ Cerrar' },
+      { id: 'ChevronDown', label: '⬇️ Flecha Abajo' },
+      { id: 'ChevronRight', label: '➡️ Flecha Derecha' },
+      { id: 'ArrowRight', label: '→ Flecha Derecha Grande' },
+      { id: 'ExternalLink', label: '🔗 Enlace Externo' },
+      { id: 'FileText', label: '📄 Documento' },
+      { id: 'Image', label: '🖼️ Imagen' },
+      { id: 'Palette', label: '🎨 Paleta/Diseño' },
+      { id: 'Scissors', label: '✂️ Tijeras' },
+      { id: 'Printer', label: '🖨️ Impresora' },
+      { id: 'Shirt', label: '👕 Camiseta/Textil' },
+      { id: 'Gift', label: '🎁 Regalo' },
+      { id: 'Camera', label: '📷 Cámara' },
+      { id: 'Brush', label: '🖌️ Pincel' },
+      { id: 'Pen', label: '🖊️ Bolígrafo' },
+      { id: 'Layers', label: '📚 Capas' },
+      { id: 'Grid', label: '⊞ Cuadrícula' },
+      { id: 'List', label: '📋 Lista' },
+      { id: 'Tag', label: '🏷️ Etiqueta' },
+      { id: 'Tags', label: '🏷️ Etiquetas' }
     ]
 
     return NextResponse.json({

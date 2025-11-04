@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-// getServerSession replaced with auth() - import removed
+import { revalidatePath } from 'next/cache'
 import { auth } from "@/auth"
 import { db } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
+    const userRole = (session?.user as any)?.role
+    if (!session?.user || (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -69,6 +70,10 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Revalidar rutas para que se actualice el menú en el frontend
+    revalidatePath('/', 'layout')
+    revalidatePath('/admin/content/menus')
+
     return NextResponse.json(menuItem)
   } catch (error) {
     console.error('Error creating menu item:', error)
@@ -82,7 +87,8 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
+    const userRole = (session?.user as any)?.role
+    if (!session?.user || (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -101,6 +107,10 @@ export async function PUT(request: NextRequest) {
       )
 
       await db.$transaction(updates)
+
+      // Revalidar rutas para que se actualice el menú
+      revalidatePath('/', 'layout')
+      revalidatePath('/admin/content/menus')
 
       return NextResponse.json({ success: true })
     } else {
@@ -128,6 +138,10 @@ export async function PUT(request: NextRequest) {
         }
       })
 
+      // Revalidar rutas para que se actualice el menú
+      revalidatePath('/', 'layout')
+      revalidatePath('/admin/content/menus')
+
       return NextResponse.json(menuItem)
     }
   } catch (error) {
@@ -142,7 +156,8 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
+    const userRole = (session?.user as any)?.role
+    if (!session?.user || (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -156,6 +171,10 @@ export async function DELETE(request: NextRequest) {
     await db.menuItem.delete({
       where: { id }
     })
+
+    // Revalidar rutas para que se actualice el menú
+    revalidatePath('/', 'layout')
+    revalidatePath('/admin/content/menus')
 
     return NextResponse.json({ success: true })
   } catch (error) {

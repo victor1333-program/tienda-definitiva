@@ -10,7 +10,7 @@ export async function DELETE(
 ) {
   try {
     const session = await auth()
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
+    if (!session?.user || (session.user as any).role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 

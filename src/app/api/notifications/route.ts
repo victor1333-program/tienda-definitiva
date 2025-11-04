@@ -84,7 +84,7 @@ async function createNotificationHandler(request: NextRequest) {
   try {
     // Verificar autenticación y permisos de admin
     const session = await auth()
-    if (!session?.user?.id || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+    if (!session?.user?.id || (session.user.role !== 'ADMIN' && role !== 'SUPER_ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
       return apiSecurityHeaders(NextResponse.json(
         { message: 'No autorizado' },
         { status: 403 }

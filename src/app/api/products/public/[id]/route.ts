@@ -99,15 +99,26 @@ export async function GET(
       )
     }
 
-    
+
     // Formatear datos para el frontend
+    // Convertir precios de string/Decimal a number
+    const basePrice = typeof product.basePrice === 'string'
+      ? parseFloat(product.basePrice)
+      : Number(product.basePrice)
+
+    const comparePrice = product.comparePrice
+      ? (typeof product.comparePrice === 'string'
+        ? parseFloat(product.comparePrice)
+        : Number(product.comparePrice))
+      : null
+
     const formattedProduct = {
       id: product.id,
       name: product.name,
       slug: product.slug,
       description: product.description,
-      basePrice: product.basePrice,
-      comparePrice: product.comparePrice,
+      basePrice: basePrice,
+      comparePrice: comparePrice,
       images: (() => {
         try {
           return JSON.parse(product.images || '[]')
@@ -129,6 +140,9 @@ export async function GET(
       metaDescription: product.metaDescription,
       featured: product.featured,
       tags: [], // Agregar lógica para tags si es necesario
+      // Stock principal del producto (para productos sin variantes)
+      stock: product.stock,
+      trackInventory: product.trackInventory,
       variantGroupsConfig: (() => {
         try {
           return product.variantGroupsConfig ? JSON.parse(product.variantGroupsConfig) : null
@@ -137,27 +151,33 @@ export async function GET(
           return null
         }
       })(),
-      variants: includeVariants ? product.variants.map(variant => ({
-        id: variant.id,
-        sku: variant.sku,
-        name: `${variant.size ? variant.size : ''}${variant.colorName ? ` - ${variant.colorName}` : ''}${variant.material ? ` (${variant.material})` : ''}`.trim() || 'Variante estándar',
-        price: variant.price || product.basePrice,
-        stock: variant.stock,
-        size: variant.size,
-        colorName: variant.colorName,
-        colorHex: variant.colorHex,
-        material: variant.material,
-        width: variant.width,
-        height: variant.height,
-        images: (() => {
-          try {
-            return JSON.parse(variant.images || '[]')
-          } catch (e) {
-            console.error('API: Error parsing variant images JSON:', e)
-            return []
-          }
-        })() // Incluir imágenes de la variante
-      })) : [],
+      variants: includeVariants ? product.variants.map(variant => {
+        const variantPrice = variant.price
+          ? (typeof variant.price === 'string' ? parseFloat(variant.price) : Number(variant.price))
+          : basePrice
+
+        return {
+          id: variant.id,
+          sku: variant.sku,
+          name: `${variant.size ? variant.size : ''}${variant.colorName ? ` - ${variant.colorName}` : ''}${variant.material ? ` (${variant.material})` : ''}`.trim() || 'Variante estándar',
+          price: variantPrice,
+          stock: variant.stock,
+          size: variant.size,
+          colorName: variant.colorName,
+          colorHex: variant.colorHex,
+          material: variant.material,
+          width: variant.width,
+          height: variant.height,
+          images: (() => {
+            try {
+              return JSON.parse(variant.images || '[]')
+            } catch (e) {
+              console.error('API: Error parsing variant images JSON:', e)
+              return []
+            }
+          })() // Incluir imágenes de la variante
+        }
+      }) : [],
       category: includeCategory && product.categories.length > 0 ? {
         id: product.categories[0].category.id,
         name: product.categories[0].category.name,
@@ -197,26 +217,32 @@ export async function GET(
         position: side.position,
         image2D: side.image2D,
         image3D: side.image3D,
-        printAreas: side.printAreas?.map(area => ({
-          id: area.id,
-          name: area.name,
-          x: area.x,
-          y: area.y,
-          width: area.width,
-          height: area.height,
-          rotation: area.rotation || 0,
-          shape: area.shape || 'rectangle',
-          isRelativeCoordinates: area.isRelativeCoordinates || false,
-          referenceWidth: area.referenceWidth,
-          referenceHeight: area.referenceHeight,
-          printingMethod: area.printingMethod,
-          allowText: area.allowText,
-          allowImages: area.allowImages,
-          allowShapes: area.allowShapes,
-          allowClipart: area.allowClipart,
-          maxColors: area.maxColors,
-          basePrice: area.basePrice
-        })) || [],
+        printAreas: side.printAreas?.map(area => {
+          const areaBasePrice = area.basePrice
+            ? (typeof area.basePrice === 'string' ? parseFloat(area.basePrice) : Number(area.basePrice))
+            : 0
+
+          return {
+            id: area.id,
+            name: area.name,
+            x: area.x,
+            y: area.y,
+            width: area.width,
+            height: area.height,
+            rotation: area.rotation || 0,
+            shape: area.shape || 'rectangle',
+            isRelativeCoordinates: area.isRelativeCoordinates || false,
+            referenceWidth: area.referenceWidth,
+            referenceHeight: area.referenceHeight,
+            printingMethod: area.printingMethod,
+            allowText: area.allowText,
+            allowImages: area.allowImages,
+            allowShapes: area.allowShapes,
+            allowClipart: area.allowClipart,
+            maxColors: area.maxColors,
+            basePrice: areaBasePrice
+          }
+        }) || [],
         variantSideImages: side.variantSideImages || []
       })) : []
     }

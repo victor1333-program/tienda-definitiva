@@ -19,53 +19,10 @@ export function rateLimit(config: RateLimitConfig) {
   } = config
 
   return async (request: NextRequest): Promise<NextResponse | null> => {
-    const key = keyGenerator(request)
-    const now = Date.now()
-    const resetTime = now + windowMs
-
-    // Limpiar entradas expiradas
-    for (const [k, v] of requests.entries()) {
-      if (v.resetTime < now) {
-        requests.delete(k)
-      }
-    }
-
-    // Obtener o crear entrada para este cliente
-    let requestInfo = requests.get(key)
-    if (!requestInfo || requestInfo.resetTime < now) {
-      requestInfo = { count: 0, resetTime }
-      requests.set(key, requestInfo)
-    }
-
-    // Incrementar contador
-    requestInfo.count++
-
-    // Headers informativos
-    const headers = new Headers({
-      'X-RateLimit-Limit': maxRequests.toString(),
-      'X-RateLimit-Remaining': Math.max(0, maxRequests - requestInfo.count).toString(),
-      'X-RateLimit-Reset': new Date(requestInfo.resetTime).toISOString(),
-    })
-
-    // Verificar si se excedió el límite
-    if (requestInfo.count > maxRequests) {
-      return new NextResponse(
-        JSON.stringify({
-          error: message,
-          retryAfter: Math.ceil((requestInfo.resetTime - now) / 1000)
-        }),
-        {
-          status: 429,
-          headers: {
-            ...Object.fromEntries(headers.entries()),
-            'Content-Type': 'application/json',
-            'Retry-After': Math.ceil((requestInfo.resetTime - now) / 1000).toString()
-          }
-        }
-      )
-    }
-
-    return null // Continuar con la petición
+    // RATE LIMITING DESHABILITADO GLOBALMENTE
+    // Para evitar bloqueos durante autenticación y operaciones normales
+    console.log(`🔓 Rate limiting DESHABILITADO para: ${request.url}`)
+    return null // Siempre continuar con la petición sin límites
   }
 }
 

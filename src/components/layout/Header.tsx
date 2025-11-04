@@ -3,13 +3,71 @@
 import { useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
-import { Menu, X, ShoppingCart, User, LogOut, UserCircle, Heart, Search } from "lucide-react"
+import {
+  Menu, X, ShoppingCart, User, LogOut, UserCircle, Heart, Search,
+  Home, Package, Mail, Phone, Info, Settings, Star, ChevronDown,
+  ChevronRight, ArrowRight, ExternalLink, FileText, Image, Palette,
+  Scissors, Printer, Shirt, Gift, Camera, Brush, Pen, Layers, Grid,
+  List, Tag, Tags
+} from "lucide-react"
 import { useCartStore } from "@/lib/store"
 import { useWishlist } from "@/components/ui/Wishlist"
 import { NotificationCenter } from "@/components/ui/PushNotifications"
 import { Button } from "@/components/ui/button"
 import { HeaderLogo } from "@/components/ui/Logo"
 import AuthModal from "@/components/auth/AuthModal"
+import { useMenu, getMenuItemUrl, type MenuItem } from "@/hooks/useMenu"
+
+// Función para renderizar el icono correcto
+function renderIcon(iconName: string | null | undefined, className: string = "w-5 h-5") {
+  if (!iconName) return null
+
+  // Si es un emoji (comienza con un carácter Unicode alto), retornarlo directamente
+  if (iconName.length <= 4 && /[\u{1F300}-\u{1F9FF}]/u.test(iconName)) {
+    return <span className={className.replace('w-5 h-5', 'text-xl')}>{iconName}</span>
+  }
+
+  // Mapeo de nombres de iconos a componentes de Lucide React
+  const iconMap: { [key: string]: any } = {
+    'Home': Home,
+    'Package': Package,
+    'Mail': Mail,
+    'Phone': Phone,
+    'Info': Info,
+    'Settings': Settings,
+    'ShoppingCart': ShoppingCart,
+    'Heart': Heart,
+    'Star': Star,
+    'Search': Search,
+    'Menu': Menu,
+    'X': X,
+    'ChevronDown': ChevronDown,
+    'ChevronRight': ChevronRight,
+    'ArrowRight': ArrowRight,
+    'ExternalLink': ExternalLink,
+    'FileText': FileText,
+    'Image': Image,
+    'Palette': Palette,
+    'Scissors': Scissors,
+    'Printer': Printer,
+    'Shirt': Shirt,
+    'Gift': Gift,
+    'Camera': Camera,
+    'Brush': Brush,
+    'Pen': Pen,
+    'Layers': Layers,
+    'Grid': Grid,
+    'List': List,
+    'Tag': Tag,
+    'Tags': Tags,
+    'User': User,
+    'UserCircle': UserCircle,
+    'LogOut': LogOut,
+  }
+
+  const IconComponent = iconMap[iconName]
+  return IconComponent ? <IconComponent className={className} /> : null
+}
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -20,14 +78,11 @@ export default function Header() {
   const { data: session, status } = useSession()
   const { getTotalItems, toggleCart } = useCartStore()
   const { getWishlistCount } = useWishlist()
+  const { menu, loading: menuLoading } = useMenu('HEADER')
 
-  const categories = [
-    { name: "Bodas & Eventos", href: "/categoria/bodas-eventos" },
-    { name: "Comuniones & Bautizos", href: "/categoria/comuniones-bautizos" },
-    { name: "Baby Shower & Nacimiento", href: "/categoria/baby-shower" },
-    { name: "Textil Personalizado", href: "/categoria/textil-personalizado" },
-    { name: "Tazas & Accesorios", href: "/categoria/tazas-accesorios" },
-  ]
+  // Obtener items de productos (con categorías como hijos)
+  const productosItem = menu?.items.find(item => item.linkType === 'PAGE' && item.pageType === 'CATALOG')
+  const categories = productosItem?.children || []
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,51 +133,62 @@ export default function Header() {
 
             {/* Desktop Navigation mejorado */}
             <nav className="hidden md:flex items-center space-x-2" role="navigation" aria-label="Navegación principal">
-              <Link href="/" className="text-black hover:text-orange-500 px-4 py-2 rounded-xl hover:bg-gray-100 transition-all duration-300 font-semibold">
-                🏠 Inicio
-              </Link>
-              <div className="relative group">
-                <button 
-                  className="text-black hover:text-orange-500 px-4 py-2 rounded-xl hover:bg-gray-100 transition-all duration-300 font-semibold flex items-center gap-2"
-                  aria-expanded="false"
-                  aria-haspopup="true"
-                  aria-label="Menú de productos"
-                  onMouseEnter={(e) => e.currentTarget.setAttribute('aria-expanded', 'true')}
-                  onMouseLeave={(e) => e.currentTarget.setAttribute('aria-expanded', 'false')}
-                >
-                  🛍️ Productos
-                  <svg className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                <div className="absolute top-full left-0 w-80 bg-orange-500 shadow-2xl rounded-2xl border border-orange-600 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 overflow-hidden z-50" role="menu" aria-label="Categorías de productos">
-                  <div className="p-2">
-                    {categories.map((category, index) => (
-                      <Link
-                        key={category.href}
-                        href={category.href}
-                        className="flex items-center gap-3 px-4 py-3 text-white hover:bg-orange-600 rounded-xl transition-all duration-300 group/item"
-                        role="menuitem"
-                        aria-label={`Ir a ${category.name}`}
+              {menu?.items.filter(item => item.isActive).map((item) => {
+                const hasChildren = item.children && item.children.length > 0
+
+                if (hasChildren) {
+                  return (
+                    <div key={item.id} className="relative group">
+                      <button
+                        className="text-black hover:text-orange-500 px-4 py-2 rounded-xl hover:bg-gray-100 transition-all duration-300 font-semibold flex items-center gap-2"
+                        aria-expanded="false"
+                        aria-haspopup="true"
+                        aria-label={`Menú de ${item.label}`}
+                        onMouseEnter={(e) => e.currentTarget.setAttribute('aria-expanded', 'true')}
+                        onMouseLeave={(e) => e.currentTarget.setAttribute('aria-expanded', 'false')}
                       >
-                        <span className="text-2xl group-hover/item:scale-110 transition-transform duration-300" aria-hidden="true">
-                          {index === 0 ? '💍' : index === 1 ? '🎉' : index === 2 ? '👶' : index === 3 ? '👕' : '☕'}
-                        </span>
-                        <div>
-                          <div className="font-semibold text-white">{category.name}</div>
-                          <div className="text-xs text-white/80">Calidad premium</div>
+                        {renderIcon(item.icon, "w-5 h-5")}
+                        {item.label}
+                        <svg className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      <div className="absolute top-full left-0 w-80 bg-orange-500 shadow-2xl rounded-2xl border border-orange-600 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 overflow-hidden z-50" role="menu" aria-label={`Menú de ${item.label}`}>
+                        <div className="p-2">
+                          {item.children.filter(child => child.isActive).map((child) => (
+                            <Link
+                              key={child.id}
+                              href={getMenuItemUrl(child)}
+                              className="flex items-center gap-3 px-4 py-3 text-white hover:bg-orange-600 rounded-xl transition-all duration-300 group/item"
+                              role="menuitem"
+                              aria-label={`Ir a ${child.label}`}
+                              target={child.target === 'BLANK' ? '_blank' : '_self'}
+                            >
+                              {renderIcon(child.icon, "w-6 h-6 group-hover/item:scale-110 transition-transform duration-300")}
+                              <div>
+                                <div className="font-semibold text-white">{child.label}</div>
+                                <div className="text-xs text-white/80">Calidad premium</div>
+                              </div>
+                            </Link>
+                          ))}
                         </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <Link href="/personalizador" className="text-black hover:text-orange-500 px-4 py-2 rounded-xl hover:bg-gray-100 transition-all duration-300 font-semibold">
-                🎨 Personalizar
-              </Link>
-              <Link href="/contacto" className="text-black hover:text-orange-500 px-4 py-2 rounded-xl hover:bg-gray-100 transition-all duration-300 font-semibold">
-                📞 Contacto
-              </Link>
+                      </div>
+                    </div>
+                  )
+                } else {
+                  return (
+                    <Link
+                      key={item.id}
+                      href={getMenuItemUrl(item)}
+                      className="text-black hover:text-orange-500 px-4 py-2 rounded-xl hover:bg-gray-100 transition-all duration-300 font-semibold flex items-center gap-2"
+                      target={item.target === 'BLANK' ? '_blank' : '_self'}
+                    >
+                      {renderIcon(item.icon, "w-5 h-5")}
+                      {item.label}
+                    </Link>
+                  )
+                }
+              })}
             </nav>
 
             {/* Buscador inteligente */}
@@ -287,43 +353,45 @@ export default function Header() {
               </div>
               
               <nav className="py-6 px-4 space-y-3" role="navigation" aria-label="Navegación móvil">
-                <Link
-                  href="/"
-                  className="flex items-center gap-3 px-4 py-3 text-black hover:bg-gray-100 rounded-xl transition-all duration-300 font-semibold"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  🏠 Inicio
-                </Link>
-                
-                <div className="text-gray-600 text-sm font-semibold px-4 py-2">Productos:</div>
-                {categories.map((category, index) => (
-                  <Link
-                    key={category.href}
-                    href={category.href}
-                    className="flex items-center gap-3 px-4 py-3 text-black hover:bg-gray-100 rounded-xl transition-all duration-300 font-semibold ml-4"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <span className="text-xl" aria-hidden="true">
-                      {index === 0 ? '💍' : index === 1 ? '🎉' : index === 2 ? '👶' : index === 3 ? '👕' : '☕'}
-                    </span>
-                    {category.name}
-                  </Link>
-                ))}
-                
-                <Link
-                  href="/personalizador"
-                  className="flex items-center gap-3 px-4 py-3 text-black hover:bg-gray-100 rounded-xl transition-all duration-300 font-semibold"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  🎨 Personalizar
-                </Link>
-                <Link
-                  href="/contacto"
-                  className="flex items-center gap-3 px-4 py-3 text-black hover:bg-gray-100 rounded-xl transition-all duration-300 font-semibold"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  📞 Contacto
-                </Link>
+                {menu?.items.filter(item => item.isActive).map((item) => {
+                  const hasChildren = item.children && item.children.length > 0
+
+                  if (hasChildren) {
+                    return (
+                      <div key={item.id}>
+                        <div className="text-gray-600 text-sm font-semibold px-4 py-2 flex items-center gap-2">
+                          {renderIcon(item.icon, "w-5 h-5")}
+                          {item.label}:
+                        </div>
+                        {item.children.filter(child => child.isActive).map((child) => (
+                          <Link
+                            key={child.id}
+                            href={getMenuItemUrl(child)}
+                            className="flex items-center gap-3 px-4 py-3 text-black hover:bg-gray-100 rounded-xl transition-all duration-300 font-semibold ml-4"
+                            onClick={() => setIsMenuOpen(false)}
+                            target={child.target === 'BLANK' ? '_blank' : '_self'}
+                          >
+                            {renderIcon(child.icon, "w-6 h-6")}
+                            {child.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )
+                  } else {
+                    return (
+                      <Link
+                        key={item.id}
+                        href={getMenuItemUrl(item)}
+                        className="flex items-center gap-3 px-4 py-3 text-black hover:bg-gray-100 rounded-xl transition-all duration-300 font-semibold"
+                        onClick={() => setIsMenuOpen(false)}
+                        target={item.target === 'BLANK' ? '_blank' : '_self'}
+                      >
+                        {renderIcon(item.icon, "w-6 h-6")}
+                        {item.label}
+                      </Link>
+                    )
+                  }
+                })}
                 
                 {!session?.user && (
                   <div className="pt-4 space-y-3">

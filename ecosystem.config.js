@@ -18,7 +18,10 @@ module.exports = {
         AUTH_TRUST_HOST: 'true',
         NEXTAUTH_SECRET: 'dev-secret-lovilike-2024',
         NEXT_PUBLIC_APP_URL: 'https://lovilike.es',
-        NEXT_PUBLIC_API_URL: 'https://lovilike.es/api'
+        NEXT_PUBLIC_API_URL: 'https://lovilike.es/api',
+        CLOUDINARY_CLOUD_NAME: 'dwcnk6fkw',
+        CLOUDINARY_API_KEY: '466753797638838',
+        CLOUDINARY_API_SECRET: 'Skn_vHNYyAGmDxblTr27iuK06EQ'
       },
       env_production: {
         NODE_ENV: 'production',
@@ -29,7 +32,10 @@ module.exports = {
         AUTH_TRUST_HOST: 'true',
         NEXTAUTH_SECRET: 'dev-secret-lovilike-2024',
         NEXT_PUBLIC_APP_URL: 'https://lovilike.es',
-        NEXT_PUBLIC_API_URL: 'https://lovilike.es/api'
+        NEXT_PUBLIC_API_URL: 'https://lovilike.es/api',
+        CLOUDINARY_CLOUD_NAME: 'dwcnk6fkw',
+        CLOUDINARY_API_KEY: '466753797638838',
+        CLOUDINARY_API_SECRET: 'Skn_vHNYyAGmDxblTr27iuK06EQ'
       },
       // Logs
       error_file: '/home/developer/lovilike-dev/logs/error.log',

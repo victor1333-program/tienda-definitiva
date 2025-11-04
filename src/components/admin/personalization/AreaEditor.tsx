@@ -1264,24 +1264,15 @@ export default function AreaEditor({
       const result = await response.json()
       console.log('🔍 Area name update API response:', result)
       
-      if (result.success) {
+      if (result.success || result.data) {
         // Update local state with the updated area from the API
-        setAreas(prev => prev.map(area => 
-          area.id === selectedArea 
+        setAreas(prev => prev.map(area =>
+          area.id === selectedArea
             ? { ...area, name: newName }
             : area
         ))
-        
+
         console.log('✅ Area name updated successfully in database and local state')
-        
-        // Optionally call onAreasChange to notify parent component
-        if (onAreasChange) {
-          onAreasChange(areas.map(area => 
-            area.id === selectedArea 
-              ? { ...area, name: newName }
-              : area
-          ))
-        }
       } else {
         console.error('❌ Failed to update area name:', result.error)
       }

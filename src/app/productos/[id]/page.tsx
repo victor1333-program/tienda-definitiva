@@ -96,6 +96,9 @@ interface Product {
   variants: ProductVariant[]
   variantGroups?: VariantGroup[] // Añadir grupos de variantes
   variantGroupsConfig?: any // Configuración de grupos de variantes desde la BD
+  // Stock principal (para productos sin variantes)
+  stock: number
+  trackInventory: boolean
   rating?: number
   reviewCount?: number
   specifications?: {
@@ -272,20 +275,32 @@ export default function ProductDetailPage() {
   }
 
   const handleAddToCart = () => {
-    if (!product || !selectedVariant) return
+    if (!product) return
 
-    if (selectedVariant.stock < quantity) {
+    // Obtener stock disponible (de variante o producto principal)
+    const availableStock = selectedVariant ? selectedVariant.stock : product.stock
+
+    if (availableStock < quantity) {
       toast.error('Stock insuficiente')
       return
     }
 
+    // Para productos sin variantes, crear un ID único basado solo en el producto
+    const cartItemId = selectedVariant
+      ? `${product.id}-${selectedVariant.id}`
+      : product.id
+
+    const variantName = selectedVariant
+      ? selectedVariant.name
+      : 'Estándar'
+
     addItem({
-      id: `${product.id}-${selectedVariant.id}`,
+      id: cartItemId,
       productId: product.id,
-      variantId: selectedVariant.id,
+      variantId: selectedVariant?.id,
       name: product.name,
-      variant: selectedVariant.name,
-      price: Number(selectedVariant.price) || Number(product.basePrice),
+      variant: variantName,
+      price: selectedVariant ? (Number(selectedVariant.price) || Number(product.basePrice)) : Number(product.basePrice),
       image: product.images[0] || '/placeholder-product.png',
       quantity
     })
@@ -295,7 +310,11 @@ export default function ProductDetailPage() {
 
   const handleQuantityChange = (newQuantity: number) => {
     if (newQuantity < 1) return
-    if (selectedVariant && newQuantity > selectedVariant.stock) {
+
+    // Obtener stock disponible (de variante o producto principal)
+    const availableStock = selectedVariant ? selectedVariant.stock : product.stock
+
+    if (newQuantity > availableStock) {
       toast.error('Stock insuficiente')
       return
     }
@@ -690,45 +709,64 @@ export default function ProductDetailPage() {
             )}
 
             {/* Quantity */}
-            {selectedVariant && selectedVariant.stock > 0 && (
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Cantidad
-                </label>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => handleQuantityChange(quantity - 1)}
-                    disabled={quantity <= 1}
-                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="w-12 text-center font-medium">{quantity}</span>
-                  <button
-                    onClick={() => handleQuantityChange(quantity + 1)}
-                    disabled={selectedVariant && quantity >= selectedVariant.stock}
-                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                  <span className="text-sm text-gray-500">
-                    ({selectedVariant.stock} disponibles)
-                  </span>
+            {(() => {
+              const availableStock = selectedVariant ? selectedVariant.stock : product.stock
+              const hasStock = availableStock > 0
+
+              if (!hasStock) return null
+
+              return (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Cantidad
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleQuantityChange(quantity - 1)}
+                      disabled={quantity <= 1}
+                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="w-12 text-center font-medium">{quantity}</span>
+                    <button
+                      onClick={() => handleQuantityChange(quantity + 1)}
+                      disabled={quantity >= availableStock}
+                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                    <span className="text-sm text-gray-500">
+                      ({availableStock} disponibles)
+                    </span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             {/* Action Buttons */}
             <div className="space-y-3 mb-6">
-              <Button
-                onClick={handleAddToCart}
-                disabled={!selectedVariant || selectedVariant.stock <= 0}
-                className="w-full"
-                size="lg"
-              >
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                {selectedVariant?.stock <= 0 ? 'Agotado' : 'Añadir al carrito'}
-              </Button>
+              {(() => {
+                const availableStock = selectedVariant ? selectedVariant.stock : product.stock
+                const hasStock = availableStock > 0
+                const needsVariantSelection = product.variants.length > 0 && !selectedVariant
+
+                return (
+                  <Button
+                    onClick={handleAddToCart}
+                    disabled={needsVariantSelection || !hasStock}
+                    className="w-full"
+                    size="lg"
+                  >
+                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    {needsVariantSelection
+                      ? 'Selecciona una opción'
+                      : !hasStock
+                      ? 'Agotado'
+                      : 'Añadir al carrito'}
+                  </Button>
+                )
+              })()}
 
               {product.isPersonalizable && (
                 <div className="space-y-2">

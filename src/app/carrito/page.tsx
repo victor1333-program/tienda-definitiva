@@ -1,15 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { 
-  ShoppingCart, 
-  Minus, 
-  Plus, 
-  Trash2, 
+import {
+  ShoppingCart,
+  Minus,
+  Plus,
+  Trash2,
   ArrowLeft,
   Package,
   Truck,
@@ -27,15 +28,16 @@ import { formatPrice, SHIPPING_COSTS } from '@/lib/utils'
 import { WhatsAppCartButton } from '@/components/WhatsAppButton'
 
 export default function CartPage() {
-  const { 
-    items, 
-    removeItem, 
-    updateQuantity, 
-    getTotalPrice, 
+  const router = useRouter()
+  const {
+    items,
+    removeItem,
+    updateQuantity,
+    getTotalPrice,
     getTotalItems,
-    clearCart 
+    clearCart
   } = useCartStore()
-  
+
   const [discountCode, setDiscountCode] = useState('')
   const [appliedDiscount, setAppliedDiscount] = useState<{
     id: string
@@ -114,6 +116,20 @@ export default function CartPage() {
       return
     }
     updateQuantity(itemId, newQuantity)
+  }
+
+  const handleViewDesign = (item: typeof items[0]) => {
+    if (!item.productId) {
+      toast.error('No se puede ver el diseño de este producto')
+      return
+    }
+
+    // Redirigir al editor con el ID del diseño si existe
+    const editorUrl = item.customDesignId
+      ? `/editor/${item.productId}?designId=${item.customDesignId}`
+      : `/editor/${item.productId}`
+
+    router.push(editorUrl)
   }
 
   if (items.length === 0) {
@@ -302,6 +318,7 @@ export default function CartPage() {
                           </button>
                           {item.isCustomized && (
                             <button
+                              onClick={() => handleViewDesign(item)}
                               className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
                               title="Ver diseño personalizado"
                             >
