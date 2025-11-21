@@ -466,6 +466,253 @@ export default function DynamicMenuEditor() {
     )
   }
 
+  // Modal para editar elemento existente
+  const EditItemModal = () => {
+    if (!editingItem) return null
+
+    const [editItem, setEditItem] = useState({
+      label: editingItem.label || '',
+      linkType: editingItem.linkType || 'HOME',
+      target: editingItem.target || 'SELF',
+      url: editingItem.url || '',
+      categoryId: editingItem.categoryId || '',
+      productId: editingItem.productId || '',
+      pageType: editingItem.pageType || '',
+      icon: editingItem.icon || 'Package',
+      badge: editingItem.badge || '',
+      isActive: editingItem.isActive ?? true
+    })
+
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault()
+
+      if (!editItem.label.trim()) {
+        toast.error('El nombre es obligatorio')
+        return
+      }
+
+      try {
+        const response = await fetch('/api/menus/items', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editingItem.id,
+            label: editItem.label,
+            linkType: editItem.linkType,
+            target: editItem.target,
+            url: editItem.url || null,
+            categoryId: editItem.categoryId || null,
+            productId: editItem.productId || null,
+            pageType: editItem.pageType || null,
+            icon: editItem.icon,
+            badge: editItem.badge || null,
+            isActive: editItem.isActive
+          })
+        })
+
+        if (response.ok) {
+          const updatedItem = await response.json()
+
+          if (selectedMenu) {
+            setSelectedMenu({
+              ...selectedMenu,
+              items: selectedMenu.items.map(item =>
+                item.id === editingItem.id ? { ...item, ...updatedItem } : item
+              )
+            })
+          }
+
+          toast.success('Elemento actualizado')
+          setEditingItem(null)
+        } else {
+          toast.error('Error al actualizar elemento')
+        }
+      } catch (error) {
+        console.error('Error updating item:', error)
+        toast.error('Error al actualizar elemento')
+      }
+    }
+
+    return (
+      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold">Editar Elemento de Menú</h3>
+            <Button
+              variant="outline"
+              onClick={() => setEditingItem(null)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-label">Texto del Menú *</Label>
+                <Input
+                  id="edit-label"
+                  value={editItem.label}
+                  onChange={(e) => setEditItem({...editItem, label: e.target.value})}
+                  placeholder="Ej: Inicio, Productos..."
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-linkType">Tipo de Enlace</Label>
+                <select
+                  id="edit-linkType"
+                  value={editItem.linkType}
+                  onChange={(e) => setEditItem({...editItem, linkType: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  {menuOptions?.linkTypes?.map(type => (
+                    <option key={type.id} value={type.id}>{type.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {editItem.linkType === 'CATEGORY' && (
+              <div>
+                <Label htmlFor="edit-categoryId">Categoría</Label>
+                <select
+                  id="edit-categoryId"
+                  value={editItem.categoryId}
+                  onChange={(e) => setEditItem({...editItem, categoryId: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">Seleccionar categoría...</option>
+                  {menuOptions?.categories?.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {editItem.linkType === 'PRODUCT' && (
+              <div>
+                <Label htmlFor="edit-productId">Producto</Label>
+                <select
+                  id="edit-productId"
+                  value={editItem.productId}
+                  onChange={(e) => setEditItem({...editItem, productId: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">Seleccionar producto...</option>
+                  {menuOptions?.featuredProducts?.map(prod => (
+                    <option key={prod.id} value={prod.id}>{prod.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {editItem.linkType === 'PAGE' && (
+              <div>
+                <Label htmlFor="edit-pageType">Tipo de Página</Label>
+                <select
+                  id="edit-pageType"
+                  value={editItem.pageType}
+                  onChange={(e) => setEditItem({...editItem, pageType: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">Seleccionar página...</option>
+                  {menuOptions?.pageTypes?.map(page => (
+                    <option key={page.id} value={page.id}>{page.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {(editItem.linkType === 'EXTERNAL' || editItem.linkType === 'CUSTOM') && (
+              <div>
+                <Label htmlFor="edit-url">URL Personalizada</Label>
+                <Input
+                  id="edit-url"
+                  value={editItem.url}
+                  onChange={(e) => setEditItem({...editItem, url: e.target.value})}
+                  placeholder="https://ejemplo.com"
+                  type="url"
+                />
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="edit-icon">Icono</Label>
+                <select
+                  id="edit-icon"
+                  value={editItem.icon}
+                  onChange={(e) => setEditItem({...editItem, icon: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  {menuOptions?.availableIcons?.map(icon => (
+                    <option key={icon.id} value={icon.id}>{icon.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-target">Objetivo</Label>
+                <select
+                  id="edit-target"
+                  value={editItem.target}
+                  onChange={(e) => setEditItem({...editItem, target: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  {menuOptions?.targets?.map(target => (
+                    <option key={target.id} value={target.id}>{target.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-badge">Badge (opcional)</Label>
+                <Input
+                  id="edit-badge"
+                  value={editItem.badge}
+                  onChange={(e) => setEditItem({...editItem, badge: e.target.value})}
+                  placeholder="Nuevo, Hot..."
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="edit-isActive"
+                  checked={editItem.isActive}
+                  onChange={(e) => setEditItem({...editItem, isActive: e.target.checked})}
+                  className="mr-2"
+                />
+                <Label htmlFor="edit-isActive">Elemento activo</Label>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditingItem(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Guardar Cambios
+                </Button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
   // Modal para añadir nuevo elemento
   const AddItemModal = () => {
     const [newItem, setNewItem] = useState({
@@ -870,6 +1117,7 @@ export default function DynamicMenuEditor() {
 
       {/* Modales */}
       {showAddItemModal && <AddItemModal />}
+      {editingItem && <EditItemModal />}
     </div>
   )
 }

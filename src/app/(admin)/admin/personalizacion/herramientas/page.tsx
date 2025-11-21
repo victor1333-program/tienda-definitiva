@@ -191,7 +191,7 @@ export default function HerramientasPage() {
 
       {/* Coming Soon Modal */}
       {selectedTool && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/35 backdrop-blur-sm z-[100]">
           <div className="bg-white p-6 rounded-xl shadow-2xl text-center max-w-md mx-4">
             <div className="mb-4">
               <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">

@@ -65,6 +65,7 @@ import {
 
 import ImageLibrary from "./ImageLibrary"
 import ShapesLibrary from "./ShapesLibrary"
+import TemplatePreview from "@/components/common/TemplatePreview"
 
 // Dynamic import para Fabric.js
 let fabric: any = null
@@ -1951,7 +1952,7 @@ export default function ZakekeAdvancedEditor({
 
   // Efecto para actualizar el canvas cuando cambia la variante
   useEffect(() => {
-    if (canvas && currentSide && selectedVariant) {
+    if (canvas && currentSide) {
       loadSideBackground(canvas, currentSide)
     }
   }, [canvas, currentSide, selectedVariant, loadSideBackground])
@@ -5268,30 +5269,73 @@ export default function ZakekeAdvancedEditor({
             {/* Content */}
             <div className="max-h-[calc(80vh-120px)] overflow-y-auto p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {availableTemplates.optionalTemplates.map((template) => (
-                  <div key={template.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-orange-300 transition-colors">
-                    <div className="aspect-square bg-white rounded-lg mb-3 flex items-center justify-center border border-gray-100">
-                      <Star className="h-8 w-8 text-orange-400" />
+                {availableTemplates.optionalTemplates.map((template) => {
+                  // Obtener imagen para la plantilla
+                  const getTemplateImage = () => {
+                    // Si la plantilla tiene thumbnailUrl y no es base64, usarla
+                    if (template.thumbnailUrl && typeof template.thumbnailUrl === 'string' && !template.thumbnailUrl.startsWith('data:')) {
+                      console.log('Using template thumbnailUrl:', template.thumbnailUrl)
+                      return template.thumbnailUrl
+                    }
+                    // Si no, usar la imagen del primer lado del producto
+                    if (sides && sides.length > 0 && sides[0].image2D) {
+                      console.log('Using product side image:', sides[0].image2D)
+                      return sides[0].image2D
+                    }
+                    // Fallback a imagen placeholder
+                    console.log('Using placeholder image')
+                    return '/images/placeholder-category.jpg'
+                  }
+
+                  const imageUrl = getTemplateImage()
+                  console.log('Template preview debug:', {
+                    templateId: template.id,
+                    templateName: template.name,
+                    hasTemplateData: !!template.templateData,
+                    imageUrl,
+                    sidesCount: sides?.length || 0
+                  })
+
+                  return (
+                    <div key={template.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-orange-300 transition-colors">
+                      <div className="aspect-square bg-white rounded-lg mb-3 overflow-hidden border border-gray-100">
+                        {template.templateData ? (
+                          <TemplatePreview
+                            imageUrl={imageUrl}
+                            templateData={template.templateData}
+                            className="w-full h-full"
+                            maxWidth={300}
+                            maxHeight={300}
+                            showElementBorders={false}
+                            interactive={false}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-red-100">
+                            <Star className="h-8 w-8 text-orange-400" />
+                            <span className="text-xs">No template data</span>
+                          </div>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-gray-900 mb-2">{template.name}</h3>
+                      {template.description && (
+                        <p className="text-sm text-gray-600 mb-3">{template.description}</p>
+                      )}
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                        <span>Usos: {template.usageCount}</span>
+                        <span>{template.category}</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          loadTemplate(template)
+                          setShowTemplateSelector(false)
+                        }}
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                      >
+                        Usar Plantilla
+                      </button>
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-2">{template.name}</h3>
-                    {template.description && (
-                      <p className="text-sm text-gray-600 mb-3">{template.description}</p>
-                    )}
-                    <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                      <span>Usos: {template.usageCount}</span>
-                      <span>{template.category}</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        loadTemplate(template)
-                        setShowTemplateSelector(false)
-                      }}
-                      className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                    >
-                      Usar Plantilla
-                    </button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
               
               {availableTemplates.optionalTemplates.length === 0 && (

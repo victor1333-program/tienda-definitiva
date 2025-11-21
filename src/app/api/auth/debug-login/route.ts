@@ -65,10 +65,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Paso 3: Verificar email (solo para no-admins)
-    if (!user.emailVerified && user.role !== 'ADMIN' && role !== 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
+    if (!user.emailVerified && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
       console.log('❌ Email no verificado')
-      return NextResponse.json({ 
-        success: false, 
+      return NextResponse.json({
+        success: false,
         error: 'Email no verificado',
         step: 'email_verification'
       }, { status: 400 })

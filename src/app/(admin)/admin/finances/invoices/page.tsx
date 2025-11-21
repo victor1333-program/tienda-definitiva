@@ -187,9 +187,9 @@ export default function InvoicesPage() {
   }
 
   // Filtrar clientes por búsqueda
-  const filteredCustomers = customers.filter(customer => 
-    customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
-    customer.email.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+  const filteredCustomers = customers.filter(customer =>
+    (customer.name || '').toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+    (customer.email || '').toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
     (customer.phone && customer.phone.includes(customerSearchTerm)) ||
     (customer.taxId && customer.taxId.toLowerCase().includes(customerSearchTerm.toLowerCase()))
   )
@@ -352,12 +352,12 @@ export default function InvoicesPage() {
   // Filtrar facturas
   useEffect(() => {
     let filtered = invoices.filter(invoice => {
-      const matchesSearch = 
-        invoice.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesSearch =
+        (invoice.number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (invoice.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (invoice.customerEmail || '').toLowerCase().includes(searchTerm.toLowerCase())
       const matchesStatus = selectedStatus === "all" || invoice.status === selectedStatus
-      
+
       return matchesSearch && matchesStatus
     })
     
@@ -889,8 +889,8 @@ Generado el: ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLoca
 
       {/* Modal Nueva Factura */}
       {showNewInvoiceModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed top-20 left-56 right-0 bottom-0 bg-black/35 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[85vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold">

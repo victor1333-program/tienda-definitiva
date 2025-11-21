@@ -60,8 +60,6 @@ export default function AdminSidebar() {
         setExpandedMenus(prev => prev.includes("productos") ? prev : [...prev, "productos"])
       } else if (pathname.startsWith("/admin/personalizacion") || pathname.startsWith("/admin/design-variants")) {
         setExpandedMenus(prev => prev.includes("personalizacion") ? prev : [...prev, "personalizacion"])
-      } else if (pathname.startsWith("/admin/lovibox")) {
-        setExpandedMenus(prev => prev.includes("lovibox") ? prev : [...prev, "lovibox"])
       } else if (pathname.startsWith("/admin/production")) {
         setExpandedMenus(prev => prev.includes("produccion") ? prev : [...prev, "produccion"])
       } else if (pathname.startsWith("/admin/finances")) {
@@ -69,8 +67,9 @@ export default function AdminSidebar() {
       } else if (pathname.startsWith("/admin/settings") || pathname.startsWith("/admin/email-system")) {
         setExpandedMenus(prev => prev.includes("configuracion") ? prev : [...prev, "configuracion"])
       }
+      // Lovibox/Suscripciones comentado temporalmente
     }, 100)
-    
+
     return () => clearTimeout(timer)
   }, [pathname])
 
@@ -215,8 +214,8 @@ export default function AdminSidebar() {
             )}
           </div>
 
-          {/* Suscripciones Menu */}
-          <div>
+          {/* Suscripciones Menu - COMENTADO: Se implementará más adelante */}
+          {/* <div>
             <button
               onClick={() => toggleMenu("lovibox")}
               className={`w-full ${getParentLinkClass("/admin/lovibox")} justify-between`}
@@ -229,7 +228,7 @@ export default function AdminSidebar() {
                 expandedMenus.includes("lovibox") ? "rotate-180" : ""
               }`} />
             </button>
-            
+
             {expandedMenus.includes("lovibox") && (
               <div className="ml-4 mt-1 space-y-1 border-l border-gray-200 pl-3">
                 <Link href="/admin/lovibox" className={getLinkClass("/admin/lovibox")}>
@@ -254,7 +253,7 @@ export default function AdminSidebar() {
                 </Link>
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Producción Menu */}
           <div>

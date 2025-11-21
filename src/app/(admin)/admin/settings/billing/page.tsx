@@ -42,10 +42,13 @@ interface BillingSettings {
     email: string
     website: string
   }
-  invoiceSettings: {
-    prefix: string
-    startingNumber: number
-    currentNumber: number
+  documentSettings: {
+    invoicePrefix: string
+    quotePrefix: string
+    orderPrefix: string
+    nextInvoiceNumber: number
+    nextQuoteNumber: number
+    nextOrderNumber: number
     defaultTerms: number
     footerText: string
     logoUrl: string
@@ -80,10 +83,13 @@ export default function BillingSettingsPage() {
       email: "facturacion@lovilike.es",
       website: "www.lovilike.es"
     },
-    invoiceSettings: {
-      prefix: "FAC",
-      startingNumber: 1,
-      currentNumber: 15,
+    documentSettings: {
+      invoicePrefix: "INV-",
+      quotePrefix: "PRE-",
+      orderPrefix: "PED-",
+      nextInvoiceNumber: 1000,
+      nextQuoteNumber: 1000,
+      nextOrderNumber: 1000,
       defaultTerms: 30,
       footerText: "Gracias por confiar en Lovilike. Para cualquier consulta, no dude en contactarnos.",
       logoUrl: "/logo.png",
@@ -133,11 +139,11 @@ export default function BillingSettingsPage() {
     setHasChanges(true)
   }
 
-  const updateInvoiceSettings = (field: string, value: any) => {
+  const updateDocumentSettings = (field: string, value: any) => {
     setSettings({
       ...settings,
-      invoiceSettings: {
-        ...settings.invoiceSettings,
+      documentSettings: {
+        ...settings.documentSettings,
         [field]: value
       }
     })
@@ -323,86 +329,161 @@ export default function BillingSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Configuración de facturas */}
-        <Card>
+        {/* Configuración de Documentos y Numeración */}
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
-              Configuración de Facturas
+              Documentación y Numeración
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="invoicePrefix">Prefijo de Factura</Label>
-                <Input
-                  id="invoicePrefix"
-                  value={settings.invoiceSettings.prefix}
-                  onChange={(e) => updateInvoiceSettings('prefix', e.target.value)}
-                  placeholder="FAC"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="currentNumber">Número Actual</Label>
-                <Input
-                  id="currentNumber"
-                  type="number"
-                  value={settings.invoiceSettings.currentNumber}
-                  onChange={(e) => updateInvoiceSettings('currentNumber', parseInt(e.target.value))}
-                  placeholder="1"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="defaultTerms">Términos de Pago (días)</Label>
-                <Input
-                  id="defaultTerms"
-                  type="number"
-                  value={settings.invoiceSettings.defaultTerms}
-                  onChange={(e) => updateInvoiceSettings('defaultTerms', parseInt(e.target.value))}
-                  placeholder="30"
-                />
-              </div>
-              
-              <div className="md:col-span-2">
-                <Label htmlFor="footerText">Texto de Pie de Factura</Label>
-                <textarea
-                  id="footerText"
-                  value={settings.invoiceSettings.footerText}
-                  onChange={(e) => updateInvoiceSettings('footerText', e.target.value)}
-                  placeholder="Información adicional para las facturas..."
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  rows={3}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Prefijos */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-900">Prefijos de Documentos</h3>
                 <div>
-                  <Label>Envío Automático</Label>
-                  <p className="text-sm text-gray-600">Enviar facturas automáticamente por email</p>
+                  <Label htmlFor="invoicePrefix">Prefijo de Facturas</Label>
+                  <Input
+                    id="invoicePrefix"
+                    value={settings.documentSettings.invoicePrefix}
+                    onChange={(e) => updateDocumentSettings('invoicePrefix', e.target.value)}
+                    placeholder="INV-"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ejemplo: {settings.documentSettings.invoicePrefix}2024001
+                  </p>
                 </div>
-                <ColoredSwitch
-                  checked={settings.invoiceSettings.autoSend}
-                  onCheckedChange={(checked) => updateInvoiceSettings('autoSend', checked)}
-                  activeColor="green"
-                  inactiveColor="gray"
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
+
                 <div>
-                  <Label>Incluir Código QR</Label>
-                  <p className="text-sm text-gray-600">Código QR para pagos móviles</p>
+                  <Label htmlFor="quotePrefix">Prefijo de Presupuestos</Label>
+                  <Input
+                    id="quotePrefix"
+                    value={settings.documentSettings.quotePrefix}
+                    onChange={(e) => updateDocumentSettings('quotePrefix', e.target.value)}
+                    placeholder="PRE-"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ejemplo: {settings.documentSettings.quotePrefix}2024001
+                  </p>
                 </div>
-                <ColoredSwitch
-                  checked={settings.invoiceSettings.includeQR}
-                  onCheckedChange={(checked) => updateInvoiceSettings('includeQR', checked)}
-                  activeColor="green"
-                  inactiveColor="gray"
-                />
+
+                <div>
+                  <Label htmlFor="orderPrefix">Prefijo de Pedidos</Label>
+                  <Input
+                    id="orderPrefix"
+                    value={settings.documentSettings.orderPrefix}
+                    onChange={(e) => updateDocumentSettings('orderPrefix', e.target.value)}
+                    placeholder="PED-"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ejemplo: {settings.documentSettings.orderPrefix}2024001
+                  </p>
+                </div>
+              </div>
+
+              {/* Numeración */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-900">Numeración Siguiente</h3>
+                <div>
+                  <Label htmlFor="nextInvoiceNumber">Siguiente Número de Factura</Label>
+                  <Input
+                    id="nextInvoiceNumber"
+                    type="number"
+                    value={settings.documentSettings.nextInvoiceNumber}
+                    onChange={(e) => updateDocumentSettings('nextInvoiceNumber', parseInt(e.target.value))}
+                    min="1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="nextQuoteNumber">Siguiente Número de Presupuesto</Label>
+                  <Input
+                    id="nextQuoteNumber"
+                    type="number"
+                    value={settings.documentSettings.nextQuoteNumber}
+                    onChange={(e) => updateDocumentSettings('nextQuoteNumber', parseInt(e.target.value))}
+                    min="1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="nextOrderNumber">Siguiente Número de Pedido</Label>
+                  <Input
+                    id="nextOrderNumber"
+                    type="number"
+                    value={settings.documentSettings.nextOrderNumber}
+                    onChange={(e) => updateDocumentSettings('nextOrderNumber', parseInt(e.target.value))}
+                    min="1"
+                  />
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <div className="flex items-start">
+                    <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-yellow-800">
+                        <strong>Atención:</strong> Cambiar estos números puede afectar la secuencia de documentos.
+                        Solo modifica si sabes lo que estás haciendo.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Configuración adicional */}
+              <div className="md:col-span-2 space-y-4 pt-4 border-t">
+                <div>
+                  <Label htmlFor="defaultTerms">Términos de Pago (días)</Label>
+                  <Input
+                    id="defaultTerms"
+                    type="number"
+                    value={settings.documentSettings.defaultTerms}
+                    onChange={(e) => updateDocumentSettings('defaultTerms', parseInt(e.target.value))}
+                    placeholder="30"
+                    className="max-w-xs"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="footerText">Texto de Pie de Documento</Label>
+                  <textarea
+                    id="footerText"
+                    value={settings.documentSettings.footerText}
+                    onChange={(e) => updateDocumentSettings('footerText', e.target.value)}
+                    placeholder="Información adicional para los documentos..."
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <Label>Envío Automático</Label>
+                      <p className="text-sm text-gray-600">Enviar documentos automáticamente por email</p>
+                    </div>
+                    <ColoredSwitch
+                      checked={settings.documentSettings.autoSend}
+                      onCheckedChange={(checked) => updateDocumentSettings('autoSend', checked)}
+                      activeColor="green"
+                      inactiveColor="gray"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <Label>Incluir Código QR</Label>
+                      <p className="text-sm text-gray-600">Código QR para pagos móviles</p>
+                    </div>
+                    <ColoredSwitch
+                      checked={settings.documentSettings.includeQR}
+                      onCheckedChange={(checked) => updateDocumentSettings('includeQR', checked)}
+                      activeColor="green"
+                      inactiveColor="gray"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -573,7 +654,7 @@ export default function BillingSettingsPage() {
               </div>
               <div className="text-right">
                 <h3 className="text-lg font-semibold">FACTURA</h3>
-                <p className="text-gray-600">{settings.invoiceSettings.prefix}-{settings.invoiceSettings.currentNumber.toString().padStart(4, '0')}</p>
+                <p className="text-gray-600">{settings.documentSettings.invoicePrefix}{settings.documentSettings.nextInvoiceNumber.toString().padStart(4, '0')}</p>
                 <p className="text-gray-600">Fecha: {new Date().toLocaleDateString('es-ES')}</p>
               </div>
             </div>
@@ -622,8 +703,8 @@ export default function BillingSettingsPage() {
             </div>
             
             <div className="mt-6 text-sm text-gray-600">
-              <p>{settings.invoiceSettings.footerText}</p>
-              <p className="mt-2">Términos de pago: {settings.invoiceSettings.defaultTerms} días</p>
+              <p>{settings.documentSettings.footerText}</p>
+              <p className="mt-2">Términos de pago: {settings.documentSettings.defaultTerms} días</p>
             </div>
           </div>
         </CardContent>

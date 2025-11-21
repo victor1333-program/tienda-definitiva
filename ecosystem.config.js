@@ -2,45 +2,45 @@
 module.exports = {
   apps: [
     {
-      name: 'tienda-definitiva',
-      script: '.next/standalone/server.js',
-      cwd: '/home/developer/lovilike-dev',
+      name: 'lovilike',
+      script: 'server.js',
+      cwd: '/root/projects/lovilike',
       instances: 2, // Usar 2 instancias para estabilidad
       exec_mode: 'cluster',
       watch: false,
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000,
-        DATABASE_URL: 'postgresql://developer:dev123@localhost:5432/lovilike_dev',
-        NEXTAUTH_URL: 'https://lovilike.es',
-        AUTH_URL: 'https://lovilike.es',
+        PORT: 3001,
+        DATABASE_URL: 'postgresql://lovilike_user:lovilike_2025@127.0.0.1:5433/lovilike_db',
+        NEXTAUTH_URL: 'http://157.173.97.116:3001',
+        AUTH_URL: 'http://157.173.97.116:3001',
         AUTH_TRUST_HOST: 'true',
-        NEXTAUTH_SECRET: 'dev-secret-lovilike-2024',
-        NEXT_PUBLIC_APP_URL: 'https://lovilike.es',
-        NEXT_PUBLIC_API_URL: 'https://lovilike.es/api',
+        NEXTAUTH_SECRET: '9b4rDf79Pu/Ar4vRiQ0PPEy0W66G5wGQyepE+cVIhEs=',
+        NEXT_PUBLIC_APP_URL: 'http://157.173.97.116:3001',
+        NEXT_PUBLIC_API_URL: 'http://157.173.97.116:3001/api',
         CLOUDINARY_CLOUD_NAME: 'dwcnk6fkw',
         CLOUDINARY_API_KEY: '466753797638838',
         CLOUDINARY_API_SECRET: 'Skn_vHNYyAGmDxblTr27iuK06EQ'
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000,
-        DATABASE_URL: 'postgresql://developer:dev123@localhost:5432/lovilike_dev',
-        NEXTAUTH_URL: 'https://lovilike.es',
-        AUTH_URL: 'https://lovilike.es',
+        PORT: 3001,
+        DATABASE_URL: 'postgresql://lovilike_user:lovilike_2025@127.0.0.1:5433/lovilike_db',
+        NEXTAUTH_URL: 'http://157.173.97.116:3001',
+        AUTH_URL: 'http://157.173.97.116:3001',
         AUTH_TRUST_HOST: 'true',
-        NEXTAUTH_SECRET: 'dev-secret-lovilike-2024',
-        NEXT_PUBLIC_APP_URL: 'https://lovilike.es',
-        NEXT_PUBLIC_API_URL: 'https://lovilike.es/api',
+        NEXTAUTH_SECRET: '9b4rDf79Pu/Ar4vRiQ0PPEy0W66G5wGQyepE+cVIhEs=',
+        NEXT_PUBLIC_APP_URL: 'http://157.173.97.116:3001',
+        NEXT_PUBLIC_API_URL: 'http://157.173.97.116:3001/api',
         CLOUDINARY_CLOUD_NAME: 'dwcnk6fkw',
         CLOUDINARY_API_KEY: '466753797638838',
         CLOUDINARY_API_SECRET: 'Skn_vHNYyAGmDxblTr27iuK06EQ'
       },
       // Logs
-      error_file: '/home/developer/lovilike-dev/logs/error.log',
-      out_file: '/home/developer/lovilike-dev/logs/out.log',
-      log_file: '/home/developer/lovilike-dev/logs/combined.log',
+      error_file: '/root/projects/lovilike/logs/error.log',
+      out_file: '/root/projects/lovilike/logs/out.log',
+      log_file: '/root/projects/lovilike/logs/combined.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       max_size: '10M',
@@ -53,7 +53,7 @@ module.exports = {
       min_uptime: '30s',
       
       // Health checks
-      health_check_http: 'http://localhost:3000/api/health',
+      health_check_http: 'http://localhost:3001/api/health',
       health_check_interval: 30000,
       health_check_grace_period: 10000,
       
@@ -75,8 +75,8 @@ module.exports = {
       // Configuración de clustering
       instance_var: 'INSTANCE_ID',
       
-      // Script de pre-arranque
-      pre_hook: '/home/developer/lovilike-dev/scripts/pre-start-health-check.sh',
+      // Script de pre-arranque (opcional, comentado si no existe)
+      // pre_hook: '/root/projects/lovilike/scripts/pre-start-health-check.sh',
       
       // Configuración adicional para estabilidad
       combine_logs: true,

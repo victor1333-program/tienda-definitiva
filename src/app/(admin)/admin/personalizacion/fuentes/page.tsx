@@ -513,7 +513,7 @@ export default function FuentesPage() {
 
       {/* Upload Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/35 backdrop-blur-sm z-[100]">
           <div className="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full mx-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">Subir Nueva Fuente</h2>
@@ -595,7 +595,7 @@ export default function FuentesPage() {
 
       {/* Preview Modal */}
       {showPreviewModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/35 backdrop-blur-sm z-[100]">
           <div className="bg-white p-6 rounded-xl shadow-2xl max-w-2xl w-full mx-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">

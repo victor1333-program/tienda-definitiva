@@ -3,7 +3,7 @@
 import { useState, useEffect, memo, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Star, Heart, ShoppingCart, Eye, ArrowRight } from 'lucide-react'
+import { Heart, ShoppingCart, Eye, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
@@ -11,14 +11,18 @@ interface Product {
   id: string
   name: string
   slug: string
-  price: number
-  discountPrice?: number
-  image: string
-  rating: number
-  reviewsCount: number
-  isNew?: boolean
-  isBestseller?: boolean
-  category: string
+  basePrice: number
+  comparePrice?: number | null
+  images: string[]
+  featured: boolean
+  topSelling: boolean
+  category: {
+    id: string
+    name: string
+    slug: string
+  } | null
+  hasDiscount: boolean
+  discountPercentage: number | null
 }
 
 const FeaturedProducts = memo(function FeaturedProducts() {
@@ -31,101 +35,17 @@ const FeaturedProducts = memo(function FeaturedProducts() {
 
   const fetchFeaturedProducts = useCallback(async () => {
     try {
-      // Simulamos la carga de productos destacados
-      // En producción esto vendría de la API
-      const mockProducts: Product[] = [
-        {
-          id: '1',
-          name: 'Taza Personalizada Boda',
-          slug: 'taza-personalizada-boda',
-          price: 24.99,
-          discountPrice: 19.99,
-          image: '/images/products/taza-boda.jpg',
-          rating: 4.8,
-          reviewsCount: 127,
-          isNew: true,
-          category: 'Bodas'
-        },
-        {
-          id: '2',
-          name: 'Camiseta Baby Shower',
-          slug: 'camiseta-baby-shower',
-          price: 29.99,
-          image: '/images/products/camiseta-baby-shower.jpg',
-          rating: 4.9,
-          reviewsCount: 89,
-          isBestseller: true,
-          category: 'Baby Shower'
-        },
-        {
-          id: '3',
-          name: 'Marcapáginas Comunión',
-          slug: 'marcapaginas-comunion',
-          price: 15.99,
-          discountPrice: 12.99,
-          image: '/images/products/marcapaginas-comunion.jpg',
-          rating: 4.7,
-          reviewsCount: 203,
-          category: 'Comuniones'
-        },
-        {
-          id: '4',
-          name: 'Sudadera Personalizada',
-          slug: 'sudadera-personalizada',
-          price: 39.99,
-          image: '/images/products/sudadera-personalizada.jpg',
-          rating: 4.6,
-          reviewsCount: 156,
-          category: 'Textil'
-        },
-        {
-          id: '5',
-          name: 'Imanes Nevera Bautizo',
-          slug: 'imanes-nevera-bautizo',
-          price: 18.99,
-          image: '/images/products/imanes-bautizo.jpg',
-          rating: 4.8,
-          reviewsCount: 94,
-          isNew: true,
-          category: 'Bautizos'
-        },
-        {
-          id: '6',
-          name: 'Caja Regalo Personalizada',
-          slug: 'caja-regalo-personalizada',
-          price: 34.99,
-          discountPrice: 29.99,
-          image: '/images/products/caja-regalo.jpg',
-          rating: 4.9,
-          reviewsCount: 178,
-          isBestseller: true,
-          category: 'Regalos'
-        },
-        {
-          id: '7',
-          name: 'Bolsa Tela Evento',
-          slug: 'bolsa-tela-evento',
-          price: 22.99,
-          image: '/images/products/bolsa-tela.jpg',
-          rating: 4.5,
-          reviewsCount: 112,
-          category: 'Textil'
-        },
-        {
-          id: '8',
-          name: 'Pulsera Personalizada',
-          slug: 'pulsera-personalizada',
-          price: 16.99,
-          image: '/images/products/pulsera-personalizada.jpg',
-          rating: 4.7,
-          reviewsCount: 87,
-          category: 'Accesorios'
-        }
-      ]
+      const response = await fetch('/api/products/public?featured=true&limit=8')
 
-      setProducts(mockProducts)
+      if (!response.ok) {
+        throw new Error('Error al obtener productos destacados')
+      }
+
+      const data = await response.json()
+      setProducts(data.products)
     } catch (error) {
       console.error('Error fetching featured products:', error)
+      setProducts([]) // Set empty array on error
     } finally {
       setLoading(false)
     }
@@ -133,17 +53,11 @@ const FeaturedProducts = memo(function FeaturedProducts() {
 
   const formatPrice = useCallback((price: number) => `${price.toFixed(2)}€`, [])
 
-  const renderStars = useCallback((rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`w-4 h-4 ${
-          i < Math.floor(rating) 
-            ? 'text-yellow-400 fill-current' 
-            : 'text-gray-300'
-        }`}
-      />
-    ))
+  const getProductImage = useCallback((product: Product) => {
+    if (product.images && product.images.length > 0) {
+      return product.images[0]
+    }
+    return '/placeholder-product.png'
   }, [])
 
   if (loading) {
@@ -194,7 +108,7 @@ const FeaturedProducts = memo(function FeaturedProducts() {
                 {/* Product Image */}
                 <div className="relative aspect-square overflow-hidden bg-gray-100">
                   <Image
-                    src={product.image}
+                    src={getProductImage(product)}
                     alt={product.name}
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-500"
@@ -202,22 +116,22 @@ const FeaturedProducts = memo(function FeaturedProducts() {
                       e.currentTarget.src = '/placeholder-product.png'
                     }}
                   />
-                  
+
                   {/* Badges */}
                   <div className="absolute top-3 left-3 flex flex-col gap-2">
-                    {product.isNew && (
-                      <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                        NUEVO
+                    {product.featured && (
+                      <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        DESTACADO
                       </span>
                     )}
-                    {product.isBestseller && (
-                      <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                    {product.topSelling && (
+                      <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                         TOP VENTAS
                       </span>
                     )}
-                    {product.discountPrice && (
+                    {product.hasDiscount && product.discountPercentage && (
                       <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                        -{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%
+                        -{product.discountPercentage}%
                       </span>
                     )}
                   </div>
@@ -245,38 +159,30 @@ const FeaturedProducts = memo(function FeaturedProducts() {
 
                 {/* Product Info */}
                 <div className="p-4">
-                  <div className="text-xs text-orange-600 font-medium mb-1 uppercase tracking-wide">
-                    {product.category}
-                  </div>
-                  
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors">
+                  {product.category && (
+                    <div className="text-xs text-orange-600 font-medium mb-1 uppercase tracking-wide">
+                      {product.category.name}
+                    </div>
+                  )}
+
+                  <h3 className="font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-orange-600 transition-colors">
                     {product.name}
                   </h3>
-                  
-                  {/* Rating */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex gap-0.5">
-                      {renderStars(product.rating)}
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      ({product.reviewsCount})
-                    </span>
-                  </div>
-                  
+
                   {/* Price */}
                   <div className="flex items-center gap-2">
-                    {product.discountPrice ? (
+                    {product.hasDiscount && product.comparePrice ? (
                       <>
                         <span className="text-lg font-bold text-orange-600">
-                          {formatPrice(product.discountPrice)}
+                          {formatPrice(product.basePrice)}
                         </span>
                         <span className="text-sm text-gray-400 line-through">
-                          {formatPrice(product.price)}
+                          {formatPrice(product.comparePrice)}
                         </span>
                       </>
                     ) : (
                       <span className="text-lg font-bold text-gray-900">
-                        {formatPrice(product.price)}
+                        {formatPrice(product.basePrice)}
                       </span>
                     )}
                   </div>

@@ -322,12 +322,12 @@ export async function generateInvoiceFromQuote(quoteData: any) {
         totalAmount,
         issueDate: new Date(),
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
-        
+
         // Información del cliente
-        customerName: quoteData.customerName,
-        customerEmail: quoteData.customerEmail,
-        customerPhone: quoteData.customerPhone || '',
-        billingAddress: null,
+        customerName: quoteData.customerName || '',
+        customerEmail: quoteData.customerEmail || '',
+        customerPhone: quoteData.customerPhone || null,
+        billingAddress: quoteData.billingAddress || null,
         
         // Información de la empresa
         companyName: companySettings.name,

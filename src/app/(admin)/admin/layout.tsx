@@ -6,6 +6,9 @@ import AdminHeader from "@/components/admin/AdminHeader"
 import AdminPageSkeleton from "@/components/admin/loading/AdminPageSkeleton"
 import { Toaster } from "react-hot-toast"
 
+// Deshabilitar prerenderizado estático para todas las páginas del admin
+export const dynamic = 'force-dynamic'
+
 export default async function AdminLayout({
   children,
 }: {

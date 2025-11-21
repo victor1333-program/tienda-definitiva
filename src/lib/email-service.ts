@@ -1,5 +1,5 @@
-import nodemailer from 'nodemailer'
 import { db } from './db'
+import nodemailer from 'nodemailer'
 
 export interface EmailTemplate {
   id: string
@@ -40,7 +40,18 @@ class EmailService {
       })
 
       const settingsMap = settings.reduce((acc, setting) => {
-        acc[setting.key] = setting.value
+        // El campo value es de tipo Json en Prisma
+        // Si es un string JSON, parsearlo; si ya es un valor simple, usarlo directamente
+        let value = setting.value
+        if (typeof value === 'string') {
+          try {
+            // Intentar parsear si es un JSON string
+            value = JSON.parse(value)
+          } catch {
+            // Si falla el parse, usar el valor tal cual
+          }
+        }
+        acc[setting.key] = String(value)
         return acc
       }, {} as Record<string, string>)
 
@@ -84,7 +95,7 @@ class EmailService {
     if (!config) return null
 
     try {
-      this.transporter = nodemailer.createTransporter({
+      this.transporter = nodemailer.createTransport({
         host: config.smtpHost,
         port: config.smtpPort,
         secure: config.smtpSecure,

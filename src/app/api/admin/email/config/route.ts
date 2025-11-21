@@ -7,8 +7,8 @@ import { emailService } from '@/lib/email-service'
 export async function GET() {
   try {
     const session = await auth()
-    
-    if (!session || (session.user.role !== 'ADMIN' && role !== 'SUPER_ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+
+    if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -22,7 +22,18 @@ export async function GET() {
     })
 
     const config = settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.value
+      // El campo value es de tipo Json en Prisma
+      // Si es un string JSON, parsearlo; si ya es un valor simple, usarlo directamente
+      let value = setting.value
+      if (typeof value === 'string') {
+        try {
+          // Intentar parsear si es un JSON string
+          value = JSON.parse(value)
+        } catch {
+          // Si falla el parse, usar el valor tal cual
+        }
+      }
+      acc[setting.key] = String(value)
       return acc
     }, {} as Record<string, string>)
 
@@ -42,8 +53,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
-    
-    if (!session || (session.user.role !== 'ADMIN' && role !== 'SUPER_ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+
+    if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -101,8 +112,7 @@ export async function POST(req: NextRequest) {
         update: { value: setting.value },
         create: {
           key: setting.key,
-          value: setting.value,
-          description: getSettingDescription(setting.key)
+          value: setting.value
         }
       })
     }
@@ -123,17 +133,4 @@ export async function POST(req: NextRequest) {
     console.error('Error saving email config:', error)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
-}
-
-function getSettingDescription(key: string): string {
-  const descriptions: Record<string, string> = {
-    smtp_host: 'Servidor SMTP para envío de emails',
-    smtp_port: 'Puerto del servidor SMTP',
-    smtp_secure: 'Usar conexión segura SSL/TLS',
-    smtp_user: 'Usuario para autenticación SMTP',
-    smtp_password: 'Contraseña para autenticación SMTP',
-    from_email: 'Dirección de email de origen',
-    from_name: 'Nombre que aparece como remitente'
-  }
-  return descriptions[key] || ''
 }

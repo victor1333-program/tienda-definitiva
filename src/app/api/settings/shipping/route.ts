@@ -41,8 +41,8 @@ const DEFAULT_SHIPPING_SETTINGS = {
   methods: [
     {
       id: 'standard',
-      name: 'Envío Estándar',
-      description: 'Entrega en 3-5 días laborables',
+      name: 'Envío Estándar GLS',
+      description: 'Entrega en 3-5 días laborables con GLS',
       type: 'flat_rate',
       enabled: true,
       zones: ['spain'],
@@ -53,15 +53,15 @@ const DEFAULT_SHIPPING_SETTINGS = {
       price: 4.95,
       freeShippingThreshold: 50,
       estimatedDays: { min: 3, max: 5 },
-      carrier: 'correos',
+      carrier: 'gls',
       trackingEnabled: true,
       requiresSignature: false,
       insuranceIncluded: false
     },
     {
       id: 'express',
-      name: 'Envío Express',
-      description: 'Entrega en 24-48 horas',
+      name: 'Envío Express GLS',
+      description: 'Entrega en 24-48 horas con GLS Express',
       type: 'flat_rate',
       enabled: true,
       zones: ['spain'],
@@ -72,77 +72,20 @@ const DEFAULT_SHIPPING_SETTINGS = {
       price: 9.95,
       freeShippingThreshold: 100,
       estimatedDays: { min: 1, max: 2 },
-      carrier: 'seur',
+      carrier: 'gls',
       trackingEnabled: true,
       requiresSignature: true,
       insuranceIncluded: true
     }
   ],
   carriers: {
-    correos: {
-      id: 'correos',
-      name: 'Correos España',
-      enabled: true,
-      apiKey: '',
-      apiSecret: '',
-      accountNumber: '',
-      mode: 'test',
-      services: ['standard', 'certified']
-    },
-    ups: {
-      id: 'ups',
-      name: 'UPS',
-      enabled: false,
-      apiKey: '',
-      apiSecret: '',
-      accountNumber: '',
-      mode: 'test',
-      services: ['ground', 'express']
-    },
-    dhl: {
-      id: 'dhl',
-      name: 'DHL',
-      enabled: false,
-      apiKey: '',
-      apiSecret: '',
-      accountNumber: '',
-      mode: 'test',
-      services: ['express', 'economy']
-    },
-    fedex: {
-      id: 'fedex',
-      name: 'FedEx',
-      enabled: false,
-      apiKey: '',
-      apiSecret: '',
-      accountNumber: '',
-      mode: 'test',
-      services: ['ground', 'express']
-    },
-    mrw: {
-      id: 'mrw',
-      name: 'MRW',
-      enabled: false,
-      apiKey: '',
-      apiSecret: '',
-      accountNumber: '',
-      mode: 'test',
-      services: ['standard', 'express']
-    },
-    seur: {
-      id: 'seur',
-      name: 'SEUR',
-      enabled: false,
-      apiKey: '',
-      apiSecret: '',
-      accountNumber: '',
-      mode: 'test',
-      services: ['standard', 'express', 'international']
-    },
+    // GLS - ÚNICO TRANSPORTISTA ACTIVO PARA MVP
+    // OTROS TRANSPORTISTAS COMENTADOS EN EL CÓDIGO - SE IMPLEMENTARÁN MÁS ADELANTE
+    // (correos, ups, dhl, fedex, mrw, seur)
     gls: {
       id: 'gls',
       name: 'GLS',
-      enabled: false,
+      enabled: true,
       apiKey: '',
       apiSecret: '',
       accountNumber: '',

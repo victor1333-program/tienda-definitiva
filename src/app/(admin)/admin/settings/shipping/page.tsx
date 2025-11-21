@@ -172,8 +172,8 @@ const ShippingPage = memo(function ShippingPage() {
     methods: [
       {
         id: 'standard',
-        name: 'Envío Estándar',
-        description: 'Entrega en 3-5 días laborables',
+        name: 'Envío Estándar GLS',
+        description: 'Entrega en 3-5 días laborables con GLS',
         type: 'flat_rate',
         enabled: true,
         zones: ['spain'],
@@ -184,15 +184,15 @@ const ShippingPage = memo(function ShippingPage() {
         price: 4.95,
         freeShippingThreshold: 50,
         estimatedDays: { min: 3, max: 5 },
-        carrier: 'correos',
+        carrier: 'gls',
         trackingEnabled: true,
         requiresSignature: false,
         insuranceIncluded: false
       },
       {
         id: 'express',
-        name: 'Envío Express',
-        description: 'Entrega en 24-48 horas',
+        name: 'Envío Express GLS',
+        description: 'Entrega en 24-48 horas con GLS Express',
         type: 'flat_rate',
         enabled: true,
         zones: ['spain'],
@@ -203,77 +203,20 @@ const ShippingPage = memo(function ShippingPage() {
         price: 9.95,
         freeShippingThreshold: 100,
         estimatedDays: { min: 1, max: 2 },
-        carrier: 'seur',
+        carrier: 'gls',
         trackingEnabled: true,
         requiresSignature: true,
         insuranceIncluded: true
       }
     ],
     carriers: {
-      correos: {
-        id: 'correos',
-        name: 'Correos España',
-        enabled: true,
-        apiKey: '',
-        apiSecret: '',
-        accountNumber: '',
-        mode: 'test',
-        services: ['standard', 'certified']
-      },
-      ups: {
-        id: 'ups',
-        name: 'UPS',
-        enabled: false,
-        apiKey: '',
-        apiSecret: '',
-        accountNumber: '',
-        mode: 'test',
-        services: ['ground', 'express']
-      },
-      dhl: {
-        id: 'dhl',
-        name: 'DHL',
-        enabled: false,
-        apiKey: '',
-        apiSecret: '',
-        accountNumber: '',
-        mode: 'test',
-        services: ['express', 'economy']
-      },
-      fedex: {
-        id: 'fedex',
-        name: 'FedEx',
-        enabled: false,
-        apiKey: '',
-        apiSecret: '',
-        accountNumber: '',
-        mode: 'test',
-        services: ['ground', 'express']
-      },
-      mrw: {
-        id: 'mrw',
-        name: 'MRW',
-        enabled: false,
-        apiKey: '',
-        apiSecret: '',
-        accountNumber: '',
-        mode: 'test',
-        services: ['standard', 'express']
-      },
-      seur: {
-        id: 'seur',
-        name: 'SEUR',
-        enabled: false,
-        apiKey: '',
-        apiSecret: '',
-        accountNumber: '',
-        mode: 'test',
-        services: ['standard', 'express', 'international']
-      },
+      // GLS - ÚNICO TRANSPORTISTA ACTIVO PARA MVP
+      // OTROS TRANSPORTISTAS COMENTADOS EN EL CÓDIGO - SE IMPLEMENTARÁN MÁS ADELANTE
+      // (correos, ups, dhl, fedex, mrw, seur)
       gls: {
         id: 'gls',
         name: 'GLS',
-        enabled: false,
+        enabled: true,
         apiKey: '',
         apiSecret: '',
         accountNumber: '',
@@ -347,7 +290,7 @@ const ShippingPage = memo(function ShippingPage() {
   const addShippingMethod = () => {
     const newMethod: ShippingMethod = {
       id: `method-${Date.now()}`,
-      name: 'Nuevo Método',
+      name: 'Nuevo Método GLS',
       description: '',
       type: 'flat_rate',
       enabled: false,
@@ -359,12 +302,12 @@ const ShippingPage = memo(function ShippingPage() {
       price: 0,
       freeShippingThreshold: 0,
       estimatedDays: { min: 1, max: 5 },
-      carrier: 'correos',
+      carrier: 'gls', // GLS por defecto - único transportista para MVP
       trackingEnabled: true,
       requiresSignature: false,
       insuranceIncluded: false
     }
-    
+
     setSettings(prev => ({
       ...prev,
       methods: [...prev.methods, newMethod]
@@ -614,13 +557,15 @@ const ShippingPage = memo(function ShippingPage() {
                           className="w-full border border-gray-300 rounded-lg px-3 py-2"
                           disabled={!method.enabled}
                         >
+                          <option value="gls">GLS (Transportista Principal)</option>
+                          {/* OTROS TRANSPORTISTAS COMENTADOS PARA MVP
                           <option value="correos">Correos</option>
                           <option value="seur">SEUR</option>
                           <option value="mrw">MRW</option>
                           <option value="ups">UPS</option>
                           <option value="dhl">DHL</option>
                           <option value="fedex">FedEx</option>
-                          <option value="gls">GLS</option>
+                          */}
                         </select>
                       </div>
                     </div>
@@ -892,15 +837,14 @@ const ShippingPage = memo(function ShippingPage() {
           </div>
 
           <div className="grid gap-6">
+            {/* SOLO MOSTRAR GLS PARA MVP - Otros transportistas comentados arriba */}
             {Object.entries(settings.carriers).map(([carrierId, carrier]) => (
-              <Card key={carrierId} className={carrier.id === 'gls' ? 'border-orange-200 bg-orange-50' : ''}>
+              <Card key={carrierId} className="border-orange-200 bg-orange-50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-3">
                     <Truck className="w-5 h-5" />
                     {carrier.name}
-                    {carrier.id === 'gls' && (
-                      <Badge className="bg-orange-100 text-orange-800">Recomendado</Badge>
-                    )}
+                    <Badge className="bg-orange-100 text-orange-800">Transportista Principal</Badge>
                     {carrier.enabled && (
                       <Badge className="bg-green-100 text-green-800">Activo</Badge>
                     )}

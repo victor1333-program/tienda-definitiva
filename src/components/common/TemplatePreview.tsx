@@ -95,35 +95,49 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
         }
 
         // Convertir a formato DesignElementComplete
-        const convertedElements: DesignElementComplete[] = extractedElements.map((el, index) => ({
-          id: el.id || `element_${index}`,
-          type: el.type || 'text',
-          content: el.content || el.text || el.src || '',
-          x: el.x || el.left || 0,
-          y: el.y || el.top || 0,
-          width: el.width || 100,
-          height: el.height || 50,
-          relativeX: el.relativeX,
-          relativeY: el.relativeY,
-          relativeWidth: el.relativeWidth,
-          relativeHeight: el.relativeHeight,
-          referenceDimensionsWidth: el.referenceDimensionsWidth,
-          referenceDimensionsHeight: el.referenceDimensionsHeight,
-          rotation: el.rotation || el.angle || 0,
-          scaleX: el.scaleX || 1,
-          scaleY: el.scaleY || 1,
-          opacity: el.opacity || 1,
-          zIndex: el.zIndex || index,
-          isVisible: el.visible !== false && el.isVisible !== false,
-          isLocked: el.isLocked || false,
-          style: el.style || (el.type === 'text' ? {
-            fontSize: el.fontSize || 20,
-            fontFamily: el.fontFamily || 'Arial',
-            fontWeight: el.fontWeight || 'normal',
-            fill: el.color || el.fillColor || el.fill || '#000000',
-            textAlign: el.textAlign || 'left',
-          } : {}),
-        }));
+        const convertedElements: DesignElementComplete[] = extractedElements.map((el, index) => {
+          // Si el elemento tiene isRelativeCoordinates: true, las coordenadas x,y,width,height ya son porcentajes
+          const isRelative = el.isRelativeCoordinates === true
+
+          const converted = {
+            id: el.id || `element_${index}`,
+            type: el.type || 'text',
+            content: el.content || el.text || el.src || '',
+            x: el.x || el.left || 0,
+            y: el.y || el.top || 0,
+            width: el.width || 100,
+            height: el.height || 50,
+            // Si isRelativeCoordinates es true, copiar x,y,width,height a los campos relativos
+            relativeX: isRelative ? (el.x || 0) : el.relativeX,
+            relativeY: isRelative ? (el.y || 0) : el.relativeY,
+            relativeWidth: isRelative ? (el.width || 0) : el.relativeWidth,
+            relativeHeight: isRelative ? (el.height || 0) : el.relativeHeight,
+            referenceDimensionsWidth: el.referenceDimensionsWidth || el.referenceCanvasSize?.width,
+            referenceDimensionsHeight: el.referenceDimensionsHeight || el.referenceCanvasSize?.height,
+            rotation: el.rotation || el.angle || 0,
+            scaleX: el.scaleX || 1,
+            scaleY: el.scaleY || 1,
+            opacity: el.opacity || 1,
+            zIndex: el.zIndex || index,
+            isVisible: el.visible !== false && el.isVisible !== false,
+            isLocked: el.isLocked || el.locked || false,
+            style: el.style || (el.type === 'text' ? {
+              fontSize: el.fontSize || 20,
+              fontFamily: el.fontFamily || 'Arial',
+              fontWeight: el.fontWeight || 'normal',
+              fill: el.color || el.fillColor || el.fill || '#000000',
+              textAlign: el.textAlign || 'left',
+            } : {}),
+          }
+
+          console.log('TemplatePreview: Converted element', {
+            originalElement: el,
+            isRelative,
+            convertedElement: converted
+          });
+
+          return converted;
+        });
 
         setParsedElements(convertedElements);
       } catch (error) {
@@ -164,21 +178,36 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
     if (!currentDimensions) return null;
 
     // Calcular coordenadas relativas si no existen
-    let relativeCoords = {
-      x: element.relativeX || 0,
-      y: element.relativeY || 0,
-      width: element.relativeWidth || 0,
-      height: element.relativeHeight || 0,
-    };
+    let relativeCoords;
 
-    // Si no hay coordenadas relativas, calcularlas desde absolutas
-    if (relativeCoords.x === 0 && relativeCoords.y === 0 && relativeCoords.width === 0 && relativeCoords.height === 0) {
+    // Verificar si tenemos coordenadas relativas válidas
+    if (element.relativeX !== undefined && element.relativeWidth !== undefined) {
+      // Usar coordenadas relativas directamente
+      relativeCoords = {
+        x: element.relativeX,
+        y: element.relativeY || 0,
+        width: element.relativeWidth,
+        height: element.relativeHeight || 0,
+      };
+      console.log('TemplatePreview: Using relative coords', {
+        elementId: element.id,
+        type: element.type,
+        relativeCoords
+      });
+    } else {
+      // Calcular coordenadas relativas desde absolutas
       relativeCoords = {
         x: (element.x / currentDimensions.width) * 100,
         y: (element.y / currentDimensions.height) * 100,
         width: (element.width / currentDimensions.width) * 100,
         height: (element.height / currentDimensions.height) * 100,
       };
+      console.log('TemplatePreview: Calculated relative coords from absolute', {
+        elementId: element.id,
+        type: element.type,
+        absolute: { x: element.x, y: element.y, width: element.width, height: element.height },
+        relativeCoords
+      });
     }
 
     const isHovered = hoveredElement === element.id;

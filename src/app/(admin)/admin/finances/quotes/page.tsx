@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,10 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "react-hot-toast"
 import jsPDF from 'jspdf'
-import { 
-  FileText, 
-  Plus, 
-  Search, 
+import {
+  FileText,
+  Plus,
+  Search,
   Filter,
   Download,
   Eye,
@@ -25,7 +25,9 @@ import {
   XCircle,
   AlertTriangle,
   Copy,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  X
 } from "lucide-react"
 
 interface Quote {
@@ -53,6 +55,34 @@ interface QuoteItem {
   total: number
 }
 
+interface Customer {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  address?: string
+  taxId?: string
+  vatNumber?: string
+}
+
+interface CompanySettings {
+  businessName: string
+  legalName: string
+  taxId: string
+  vatNumber: string
+  address: string
+  postalCode: string
+  city: string
+  province: string
+  country: string
+  businessEmail: string
+  businessPhone: string
+  businessWebsite: string
+  logo: string | null
+  quotePrefix: string
+  nextQuoteNumber: number
+}
+
 export default function QuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [filteredQuotes, setFilteredQuotes] = useState<Quote[]>([])
@@ -63,6 +93,335 @@ export default function QuotesPage() {
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+
+  // Estados para creación de presupuestos
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null)
+  const [newQuote, setNewQuote] = useState({
+    customerId: '',
+    items: [{ id: '1', description: '', quantity: 1, unitPrice: 0, total: 0 }] as QuoteItem[],
+    notes: '',
+    validityDays: 15,
+    expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  })
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('')
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const customerDropdownRef = useRef<HTMLDivElement>(null)
+  const [isCreating, setIsCreating] = useState(false)
+
+  // Estados para autocompletado de productos
+  const [products, setProducts] = useState<any[]>([])
+  const [productSearch, setProductSearch] = useState<{[key: number]: string}>({})
+  const [showProductDropdown, setShowProductDropdown] = useState<{[key: number]: boolean}>({})
+  const productDropdownRefs = useRef<{[key: number]: HTMLDivElement | null}>({})
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    loadCompanySettings()
+    loadCustomers()
+    loadProducts()
+  }, [])
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Cerrar dropdown de clientes
+      if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target as Node)) {
+        setShowCustomerDropdown(false)
+      }
+
+      // Cerrar dropdowns de productos
+      Object.keys(productDropdownRefs.current).forEach(key => {
+        const index = parseInt(key)
+        const ref = productDropdownRefs.current[index]
+        if (ref && !ref.contains(event.target as Node)) {
+          setShowProductDropdown(prev => ({ ...prev, [index]: false }))
+        }
+      })
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const loadCompanySettings = async () => {
+    const mockSettings: CompanySettings = {
+      businessName: "Lovilike",
+      legalName: "Lovilike S.L.",
+      taxId: "B12345678",
+      vatNumber: "ES12345678",
+      address: "Calle Principal 123",
+      postalCode: "28001",
+      city: "Madrid",
+      province: "Madrid",
+      country: "España",
+      businessEmail: "admin@lovilike.es",
+      businessPhone: "+34 900 123 456",
+      businessWebsite: "https://lovilike.es",
+      logo: "/images/logo.png",
+      quotePrefix: "PRES",
+      nextQuoteNumber: 6
+    }
+    setCompanySettings(mockSettings)
+  }
+
+  const loadCustomers = async () => {
+    const mockCustomers: Customer[] = [
+      {
+        id: "CUST-001",
+        name: "Empresa ABC S.L.",
+        email: "contacto@empresaabc.com",
+        phone: "+34 600 111 222",
+        address: "Calle Industrial 123, 28001 Madrid",
+        taxId: "B12345678"
+      },
+      {
+        id: "CUST-002",
+        name: "María Rodríguez",
+        email: "maria.rodriguez@email.com",
+        phone: "+34 600 333 444",
+        address: "Avenida Central 456, 08001 Barcelona"
+      },
+      {
+        id: "CUST-003",
+        name: "Carlos Gómez",
+        email: "carlos@ejemplo.com",
+        phone: "+34 600 555 666",
+        address: "Plaza Mayor 789, 41001 Sevilla"
+      },
+      {
+        id: "CUST-004",
+        name: "Ana López",
+        email: "ana.lopez@empresa.com",
+        phone: "+34 600 777 888",
+        address: "Calle Comercio 321, 46001 Valencia",
+        taxId: "11223344A"
+      },
+      {
+        id: "CUST-005",
+        name: "Tech Solutions",
+        email: "info@techsolutions.com",
+        phone: "+34 900 999 000",
+        address: "Polígono Industrial 99, 28015 Madrid",
+        taxId: "B99887766"
+      }
+    ]
+    setCustomers(mockCustomers)
+  }
+
+  const loadProducts = async () => {
+    try {
+      const response = await fetch('/api/products?limit=100', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        // La API retorna en data.data.products
+        const productsArray = data.data?.products || data.products || []
+        console.log('Productos cargados:', productsArray.length)
+        console.log('Primer producto:', productsArray[0])
+        setProducts(productsArray)
+      } else {
+        console.error('Error al cargar productos:', response.status, response.statusText)
+      }
+    } catch (error) {
+      console.error('Error loading products:', error)
+      setProducts([])
+    }
+  }
+
+  // Funciones de manejo de productos
+  const getFilteredProducts = (searchTerm: string) => {
+    if (!searchTerm || searchTerm.length < 2) return []
+    return products.filter(product =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ).slice(0, 10)
+  }
+
+  const selectProduct = (index: number, product: any) => {
+    const updatedItems = [...newQuote.items]
+    const productPrice = product.basePrice || product.price || 0
+    updatedItems[index].description = product.name
+    updatedItems[index].unitPrice = parseFloat(productPrice)
+    updatedItems[index].total = updatedItems[index].quantity * parseFloat(productPrice)
+
+    setNewQuote({ ...newQuote, items: updatedItems })
+    setProductSearch({ ...productSearch, [index]: product.name })
+    setShowProductDropdown({ ...showProductDropdown, [index]: false })
+  }
+
+  const handleProductSearchChange = (index: number, value: string) => {
+    const updatedItems = [...newQuote.items]
+    updatedItems[index].description = value
+
+    setNewQuote({ ...newQuote, items: updatedItems })
+    setProductSearch({ ...productSearch, [index]: value })
+    setShowProductDropdown({ ...showProductDropdown, [index]: value.length >= 2 })
+  }
+
+  // Funciones de manejo de clientes
+  const filteredCustomers = customers.filter(customer =>
+    (customer.name || '').toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+    (customer.email || '').toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+    (customer.phone && customer.phone.includes(customerSearchTerm)) ||
+    (customer.taxId && customer.taxId.toLowerCase().includes(customerSearchTerm.toLowerCase()))
+  )
+
+  const selectCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer)
+    setNewQuote({ ...newQuote, customerId: customer.id })
+    setCustomerSearchTerm(customer.name)
+    setShowCustomerDropdown(false)
+  }
+
+  const resetCustomerSelection = () => {
+    setSelectedCustomer(null)
+    setNewQuote({ ...newQuote, customerId: '' })
+    setCustomerSearchTerm('')
+  }
+
+  const handleCustomerSearchFocus = () => {
+    setShowCustomerDropdown(true)
+    if (customerSearchTerm === '' && selectedCustomer) {
+      setCustomerSearchTerm('')
+    }
+  }
+
+  const handleCustomerSearchChange = (value: string) => {
+    setCustomerSearchTerm(value)
+    setShowCustomerDropdown(true)
+    if (selectedCustomer && value !== selectedCustomer.name) {
+      setSelectedCustomer(null)
+      setNewQuote({ ...newQuote, customerId: '' })
+    }
+  }
+
+  // Funciones de manejo de items
+  const calculateItemTotal = (quantity: number, unitPrice: number) => {
+    return quantity * unitPrice
+  }
+
+  const updateQuoteItem = (index: number, field: keyof QuoteItem, value: any) => {
+    const updatedItems = [...newQuote.items]
+    updatedItems[index] = { ...updatedItems[index], [field]: value }
+
+    if (field === 'quantity' || field === 'unitPrice') {
+      updatedItems[index].total = calculateItemTotal(
+        updatedItems[index].quantity,
+        updatedItems[index].unitPrice
+      )
+    }
+
+    setNewQuote({ ...newQuote, items: updatedItems })
+  }
+
+  const addQuoteItem = () => {
+    const newItem: QuoteItem = {
+      id: Date.now().toString(),
+      description: '',
+      quantity: 1,
+      unitPrice: 0,
+      total: 0
+    }
+    setNewQuote({ ...newQuote, items: [...newQuote.items, newItem] })
+  }
+
+  const removeQuoteItem = (index: number) => {
+    if (newQuote.items.length > 1) {
+      const updatedItems = newQuote.items.filter((_, i) => i !== index)
+      setNewQuote({ ...newQuote, items: updatedItems })
+    }
+  }
+
+  const calculateQuoteTotals = () => {
+    const subtotal = newQuote.items.reduce((sum, item) => sum + item.total, 0)
+    const tax = subtotal * 0.21 // IVA 21%
+    const total = subtotal + tax
+    return { subtotal, tax, total }
+  }
+
+  const generateQuoteNumber = () => {
+    if (!companySettings) return 'PRES-2025-001'
+    const year = new Date().getFullYear()
+    const prefix = companySettings.quotePrefix || 'PRES'
+    const number = companySettings.nextQuoteNumber.toString().padStart(3, '0')
+    return `${prefix}-${year}-${number}`
+  }
+
+  const createQuote = async () => {
+    if (!selectedCustomer) {
+      toast.error('Selecciona un cliente')
+      return
+    }
+
+    if (newQuote.items.some(item => !item.description || item.quantity <= 0 || item.unitPrice <= 0)) {
+      toast.error('Completa todos los elementos del presupuesto')
+      return
+    }
+
+    if (!companySettings) {
+      toast.error('No se han cargado los datos de la empresa')
+      return
+    }
+
+    setIsCreating(true)
+
+    try {
+      const totals = calculateQuoteTotals()
+
+      const quote: Quote = {
+        id: `QUO-${Date.now()}`,
+        number: generateQuoteNumber(),
+        customerId: selectedCustomer.id,
+        customerName: selectedCustomer.name,
+        customerEmail: selectedCustomer.email,
+        issueDate: new Date().toISOString().split('T')[0],
+        expiryDate: newQuote.expiryDate,
+        status: 'draft',
+        subtotal: totals.subtotal,
+        tax: totals.tax,
+        total: totals.total,
+        items: newQuote.items.map(item => ({ ...item })),
+        notes: newQuote.notes,
+        validityDays: newQuote.validityDays
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      setQuotes([quote, ...quotes])
+
+      // Actualizar número de presupuesto
+      setCompanySettings({
+        ...companySettings,
+        nextQuoteNumber: companySettings.nextQuoteNumber + 1
+      })
+
+      // Reset form
+      setNewQuote({
+        customerId: '',
+        items: [{ id: '1', description: '', quantity: 1, unitPrice: 0, total: 0 }],
+        notes: '',
+        validityDays: 15,
+        expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      })
+
+      resetCustomerSelection()
+      setShowNewQuoteModal(false)
+      toast.success('Presupuesto creado correctamente')
+
+    } catch (error) {
+      console.error('Error creating quote:', error)
+      toast.error('Error al crear el presupuesto')
+    } finally {
+      setIsCreating(false)
+    }
+  }
 
   // Mock data
   useEffect(() => {
@@ -201,12 +560,12 @@ export default function QuotesPage() {
   // Filtrar presupuestos
   useEffect(() => {
     let filtered = quotes.filter(quote => {
-      const matchesSearch = 
-        quote.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        quote.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        quote.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesSearch =
+        (quote.number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (quote.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (quote.customerEmail || '').toLowerCase().includes(searchTerm.toLowerCase())
       const matchesStatus = selectedStatus === "all" || quote.status === selectedStatus
-      
+
       return matchesSearch && matchesStatus
     })
     
@@ -814,8 +1173,8 @@ export default function QuotesPage() {
 
       {/* Modal de detalles */}
       {showDetailsModal && selectedQuoteId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full m-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed top-20 left-56 right-0 bottom-0 bg-black/35 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Detalles del Presupuesto</h2>
               <Button 
@@ -901,8 +1260,8 @@ export default function QuotesPage() {
 
       {/* Modal de edición */}
       {showEditModal && selectedQuoteId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full m-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed top-20 left-56 right-0 bottom-0 bg-black/35 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Editar Presupuesto</h2>
               <Button 
@@ -931,29 +1290,332 @@ export default function QuotesPage() {
 
       {/* Modal de nuevo presupuesto */}
       {showNewQuoteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full m-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Nuevo Presupuesto</h2>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowNewQuoteModal(false)}
-              >
-                ✕
-              </Button>
-            </div>
-            <p className="text-gray-600 text-center py-8">
-              Funcionalidad de creación de presupuestos en desarrollo.
-              Por favor, contacte al administrador del sistema.
-            </p>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowNewQuoteModal(false)}
-              >
-                Cerrar
-              </Button>
+        <div className="fixed top-20 left-56 right-0 bottom-0 bg-black/35 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[85vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold">Nuevo Presupuesto</h2>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowNewQuoteModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Información de la empresa */}
+              {companySettings && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium text-gray-700">Datos de la Empresa</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="font-semibold">{companySettings.businessName}</p>
+                        <p className="text-gray-600">{companySettings.legalName}</p>
+                        <p className="text-gray-600">{companySettings.address}</p>
+                        <p className="text-gray-600">{companySettings.postalCode} {companySettings.city}</p>
+                        <p className="text-gray-600">{companySettings.province}, {companySettings.country}</p>
+                      </div>
+                      <div>
+                        <p><span className="font-medium">CIF:</span> {companySettings.taxId}</p>
+                        <p><span className="font-medium">IVA:</span> {companySettings.vatNumber}</p>
+                        <p><span className="font-medium">Teléfono:</span> {companySettings.businessPhone}</p>
+                        <p><span className="font-medium">Email:</span> {companySettings.businessEmail}</p>
+                        <p><span className="font-medium">Web:</span> {companySettings.businessWebsite}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Selector de cliente */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium text-gray-700">Cliente</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="relative" ref={customerDropdownRef}>
+                      <Label htmlFor="customer">Buscar Cliente</Label>
+                      <div className="relative mt-1">
+                        <Input
+                          id="customer"
+                          type="text"
+                          placeholder="Buscar por nombre, email, teléfono o NIF..."
+                          value={customerSearchTerm}
+                          onChange={(e) => handleCustomerSearchChange(e.target.value)}
+                          onFocus={handleCustomerSearchFocus}
+                          className="pr-10"
+                        />
+                        {selectedCustomer && (
+                          <button
+                            type="button"
+                            onClick={resetCustomerSelection}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {/* Dropdown de resultados */}
+                        {showCustomerDropdown && customerSearchTerm.length > 0 && (
+                          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                            {filteredCustomers.length > 0 ? (
+                              filteredCustomers.map((customer) => (
+                                <div
+                                  key={customer.id}
+                                  onClick={() => selectCustomer(customer)}
+                                  className="px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="font-medium text-gray-900">{customer.name}</p>
+                                      <p className="text-sm text-gray-600">{customer.email}</p>
+                                      {customer.phone && (
+                                        <p className="text-xs text-gray-500">{customer.phone}</p>
+                                      )}
+                                    </div>
+                                    {customer.taxId && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {customer.taxId}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-4 py-3 text-sm text-gray-500">
+                                No se encontraron clientes
+                              </div>
+                            )}
+
+                            {/* Opción para crear cliente nuevo */}
+                            <div className="border-t border-gray-200 p-2">
+                              <button
+                                type="button"
+                                className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 rounded-md flex items-center gap-2"
+                                onClick={() => {
+                                  toast.info('Funcionalidad para crear cliente nuevo próximamente')
+                                }}
+                              >
+                                <Plus className="w-4 h-4" />
+                                Crear cliente nuevo: "{customerSearchTerm}"
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="validityDays">Días de Validez</Label>
+                      <Input
+                        id="validityDays"
+                        type="number"
+                        min="1"
+                        value={newQuote.validityDays}
+                        onChange={(e) => {
+                          const days = parseInt(e.target.value) || 15
+                          const expiryDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                          setNewQuote({ ...newQuote, validityDays: days, expiryDate })
+                        }}
+                        className="mt-1"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Vence el: {formatDate(newQuote.expiryDate)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Mostrar datos del cliente seleccionado */}
+                  {selectedCustomer && (
+                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-medium text-green-900">Cliente Seleccionado</h4>
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p><span className="font-medium text-gray-700">Nombre:</span> {selectedCustomer.name}</p>
+                          <p><span className="font-medium text-gray-700">Email:</span> {selectedCustomer.email}</p>
+                          {selectedCustomer.phone && <p><span className="font-medium text-gray-700">Teléfono:</span> {selectedCustomer.phone}</p>}
+                        </div>
+                        <div>
+                          {selectedCustomer.address && <p><span className="font-medium text-gray-700">Dirección:</span> {selectedCustomer.address}</p>}
+                          {selectedCustomer.taxId && <p><span className="font-medium text-gray-700">NIF/CIF:</span> {selectedCustomer.taxId}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Líneas de presupuesto */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-gray-700">Productos/Servicios</CardTitle>
+                    <Button onClick={addQuoteItem} size="sm" variant="outline">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Añadir Línea
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {newQuote.items.map((item, index) => (
+                      <div key={item.id} className="grid grid-cols-12 gap-3 items-end">
+                        <div className="col-span-5 relative" ref={(el) => { productDropdownRefs.current[index] = el }}>
+                          <Label>Descripción</Label>
+                          <Input
+                            value={item.description}
+                            onChange={(e) => handleProductSearchChange(index, e.target.value)}
+                            onFocus={() => setShowProductDropdown({ ...showProductDropdown, [index]: item.description.length >= 2 })}
+                            placeholder="Descripción del producto/servicio"
+                            autoComplete="off"
+                          />
+
+                          {/* Dropdown de sugerencias de productos */}
+                          {showProductDropdown[index] && item.description.length >= 2 && (
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                              {getFilteredProducts(item.description).length > 0 ? (
+                                getFilteredProducts(item.description).map((product) => (
+                                  <div
+                                    key={product.id}
+                                    onClick={() => selectProduct(index, product)}
+                                    className="px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <p className="font-medium text-gray-900">{product.name}</p>
+                                        {product.description && (
+                                          <p className="text-sm text-gray-600 truncate">{product.description}</p>
+                                        )}
+                                      </div>
+                                      <div className="ml-4 text-right">
+                                        <p className="font-semibold text-blue-600">{formatCurrency(product.basePrice || product.price || 0)}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="px-4 py-3 text-sm text-gray-500">
+                                  No se encontraron productos
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="col-span-2">
+                          <Label>Cantidad</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => updateQuoteItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label>Precio Unitario</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.unitPrice}
+                            onChange={(e) => updateQuoteItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label>Total</Label>
+                          <Input
+                            value={formatCurrency(item.total)}
+                            readOnly
+                            className="bg-gray-50"
+                          />
+                        </div>
+                        <div className="col-span-1">
+                          {newQuote.items.length > 1 && (
+                            <Button
+                              onClick={() => removeQuoteItem(index)}
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Totales */}
+                  <div className="mt-6 border-t pt-4">
+                    <div className="flex justify-end">
+                      <div className="w-64 space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Subtotal:</span>
+                          <span>{formatCurrency(calculateQuoteTotals().subtotal)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>IVA (21%):</span>
+                          <span>{formatCurrency(calculateQuoteTotals().tax)}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                          <span>Total:</span>
+                          <span>{formatCurrency(calculateQuoteTotals().total)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Notas */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium text-gray-700">Notas</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <textarea
+                    value={newQuote.notes}
+                    onChange={(e) => setNewQuote({ ...newQuote, notes: e.target.value })}
+                    placeholder="Notas adicionales (opcional)"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Botones de acción */}
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowNewQuoteModal(false)}
+                  disabled={isCreating}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={createQuote}
+                  disabled={isCreating || !selectedCustomer}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  {isCreating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Creando...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Crear Presupuesto
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

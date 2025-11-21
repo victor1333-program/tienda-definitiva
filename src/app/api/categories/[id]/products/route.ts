@@ -46,10 +46,12 @@ export async function POST(
 ) {
   try {
     const session = await auth()
-    if (!session?.user || (session.user as any).role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+    const userRole = (session?.user as any)?.role
+    if (!session?.user || (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
+    const { id } = await params
     const categoryId = id
     const { productIds } = await request.json()
 

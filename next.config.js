@@ -9,7 +9,7 @@ const nextConfig = {
   },
   
   // Optimización para producción
-  output: 'standalone',
+  // output: 'standalone', // Comentado: usando server.js personalizado
 
   // Configuración de imágenes
   images: {
@@ -57,6 +57,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    serverComponentsExternalPackages: ['nodemailer'],
   },
   
   // Configuración de headers de seguridad
@@ -107,21 +108,31 @@ const nextConfig = {
         canvas: false,
         jsdom: false,
       }
-      
+
       // Excluir módulos problemáticos que no se usan en el browser
       config.externals = {
         ...config.externals,
         canvas: 'canvas',
         jsdom: 'jsdom',
       }
+    } else {
+      // En el servidor, marcar nodemailer como externo
+      if (!config.externals) {
+        config.externals = []
+      }
+
+      // Asegurar que nodemailer no sea empaquetado
+      if (Array.isArray(config.externals)) {
+        config.externals.push('nodemailer')
+      }
     }
-    
+
     // Ignorar archivos binarios problemáticos
     config.module.rules.push({
       test: /\.node$/,
       use: 'ignore-loader'
     })
-    
+
     return config
   },
 }

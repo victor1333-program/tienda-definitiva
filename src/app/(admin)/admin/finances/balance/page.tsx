@@ -73,10 +73,24 @@ export default function BalancePage() {
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [isLoading, setIsLoading] = useState(true)
   const [showNewTransactionModal, setShowNewTransactionModal] = useState(false)
+  const [newTransactionType, setNewTransactionType] = useState<'income' | 'expense'>('income')
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
   const [selectedPeriod, setSelectedPeriod] = useState('month')
   const [showMonthlyReport, setShowMonthlyReport] = useState(false)
   const [isGeneratingReport, setIsGeneratingReport] = useState(false)
+
+  // Form state for new transaction
+  const [newTransaction, setNewTransaction] = useState({
+    description: '',
+    amount: '',
+    category: '',
+    date: new Date().toISOString().split('T')[0],
+    vendor: '',
+    customer: '',
+    paymentMethod: 'Tarjeta',
+    notes: '',
+    tags: ''
+  })
 
   const [categories] = useState<Category[]>([
     // Categorías de gastos
@@ -368,10 +382,52 @@ export default function BalancePage() {
   }
 
   const handleRejectTransaction = (transactionId: string) => {
-    setTransactions(transactions.map(t => 
+    setTransactions(transactions.map(t =>
       t.id === transactionId ? { ...t, status: 'rejected' as const } : t
     ))
     toast.success("Transacción rechazada")
+  }
+
+  const openNewTransactionModal = (type: 'income' | 'expense') => {
+    setNewTransactionType(type)
+    setNewTransaction({
+      description: '',
+      amount: '',
+      category: '',
+      date: new Date().toISOString().split('T')[0],
+      vendor: '',
+      customer: '',
+      paymentMethod: 'Tarjeta',
+      notes: '',
+      tags: ''
+    })
+    setShowNewTransactionModal(true)
+  }
+
+  const handleSaveTransaction = () => {
+    if (!newTransaction.description || !newTransaction.amount || !newTransaction.category) {
+      toast.error('Por favor completa todos los campos obligatorios')
+      return
+    }
+
+    const transaction: Transaction = {
+      id: `${newTransactionType === 'income' ? 'INC' : 'EXP'}-${String(transactions.length + 1).padStart(3, '0')}`,
+      description: newTransaction.description,
+      amount: parseFloat(newTransaction.amount),
+      type: newTransactionType,
+      category: newTransaction.category,
+      date: newTransaction.date,
+      vendor: newTransactionType === 'expense' ? newTransaction.vendor : undefined,
+      customer: newTransactionType === 'income' ? newTransaction.customer : undefined,
+      status: 'pending',
+      paymentMethod: newTransaction.paymentMethod,
+      notes: newTransaction.notes,
+      tags: newTransaction.tags ? newTransaction.tags.split(',').map(t => t.trim()).filter(Boolean) : []
+    }
+
+    setTransactions([transaction, ...transactions])
+    setShowNewTransactionModal(false)
+    toast.success(`${newTransactionType === 'income' ? 'Ingreso' : 'Gasto'} creado correctamente`)
   }
 
   const generateMonthlyReport = async () => {
@@ -504,15 +560,15 @@ Generado el: ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLoca
               <Calculator className="w-4 h-4 mr-2" />
               {showMonthlyReport ? 'Ocultar' : 'Ver'} Análisis
             </Button>
-            <Button 
-              onClick={() => setShowNewTransactionModal(true)}
+            <Button
+              onClick={() => openNewTransactionModal('income')}
               className="bg-green-600 hover:bg-green-700"
             >
               <Plus className="w-4 h-4 mr-2" />
               Nuevo Ingreso
             </Button>
-            <Button 
-              onClick={() => setShowNewTransactionModal(true)}
+            <Button
+              onClick={() => openNewTransactionModal('expense')}
               className="bg-red-600 hover:bg-red-700"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -967,6 +1023,183 @@ Generado el: ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLoca
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Nueva Transacción */}
+      {showNewTransactionModal && (
+        <div className="fixed top-20 left-56 right-0 bottom-0 bg-black/35 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">
+                  {newTransactionType === 'income' ? '💰 Nuevo Ingreso' : '💸 Nuevo Gasto'}
+                </h2>
+                <button
+                  onClick={() => setShowNewTransactionModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Descripción */}
+              <div>
+                <Label htmlFor="description" className="text-gray-700 font-medium">
+                  Descripción *
+                </Label>
+                <Input
+                  id="description"
+                  type="text"
+                  placeholder="Ej: Venta online - Camisetas personalizadas"
+                  value={newTransaction.description}
+                  onChange={(e) => setNewTransaction({...newTransaction, description: e.target.value})}
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Categoría y Monto */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="category" className="text-gray-700 font-medium">
+                    Categoría *
+                  </Label>
+                  <select
+                    id="category"
+                    value={newTransaction.category}
+                    onChange={(e) => setNewTransaction({...newTransaction, category: e.target.value})}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="">Selecciona una categoría</option>
+                    {categories
+                      .filter(cat => cat.type === newTransactionType)
+                      .map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <Label htmlFor="amount" className="text-gray-700 font-medium">
+                    Importe (€) *
+                  </Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={newTransaction.amount}
+                    onChange={(e) => setNewTransaction({...newTransaction, amount: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              {/* Fecha y Método de Pago */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="date" className="text-gray-700 font-medium">
+                    Fecha *
+                  </Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={newTransaction.date}
+                    onChange={(e) => setNewTransaction({...newTransaction, date: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="paymentMethod" className="text-gray-700 font-medium">
+                    Método de Pago
+                  </Label>
+                  <select
+                    id="paymentMethod"
+                    value={newTransaction.paymentMethod}
+                    onChange={(e) => setNewTransaction({...newTransaction, paymentMethod: e.target.value})}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Transferencia">Transferencia</option>
+                    <option value="Domiciliación">Domiciliación</option>
+                    <option value="Factura">Factura</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Cliente o Proveedor */}
+              <div>
+                <Label htmlFor="clientVendor" className="text-gray-700 font-medium">
+                  {newTransactionType === 'income' ? 'Cliente' : 'Proveedor'}
+                </Label>
+                <Input
+                  id="clientVendor"
+                  type="text"
+                  placeholder={newTransactionType === 'income' ? 'Nombre del cliente' : 'Nombre del proveedor'}
+                  value={newTransactionType === 'income' ? newTransaction.customer : newTransaction.vendor}
+                  onChange={(e) => newTransactionType === 'income'
+                    ? setNewTransaction({...newTransaction, customer: e.target.value})
+                    : setNewTransaction({...newTransaction, vendor: e.target.value})
+                  }
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Etiquetas */}
+              <div>
+                <Label htmlFor="tags" className="text-gray-700 font-medium">
+                  Etiquetas
+                </Label>
+                <Input
+                  id="tags"
+                  type="text"
+                  placeholder="Ej: venta, online, premium (separadas por comas)"
+                  value={newTransaction.tags}
+                  onChange={(e) => setNewTransaction({...newTransaction, tags: e.target.value})}
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Separa las etiquetas con comas</p>
+              </div>
+
+              {/* Notas */}
+              <div>
+                <Label htmlFor="notes" className="text-gray-700 font-medium">
+                  Notas
+                </Label>
+                <textarea
+                  id="notes"
+                  rows={3}
+                  placeholder="Información adicional..."
+                  value={newTransaction.notes}
+                  onChange={(e) => setNewTransaction({...newTransaction, notes: e.target.value})}
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+              <Button
+                onClick={() => setShowNewTransactionModal(false)}
+                variant="outline"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSaveTransaction}
+                className={newTransactionType === 'income' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Guardar {newTransactionType === 'income' ? 'Ingreso' : 'Gasto'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

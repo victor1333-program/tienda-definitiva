@@ -266,7 +266,29 @@ export default function TemplateEditor({
 
   const [elements, setElements] = useState<TemplateElement[]>([])
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
-  
+  const componentIdRef = useRef(Math.random().toString(36).substr(2, 9))
+
+  // Debug: Log component mount/unmount
+  useEffect(() => {
+    console.log(`🚀 TemplateEditor mounted - ID: ${componentIdRef.current}`)
+    console.log('  - productId:', productId)
+    console.log('  - templateName:', templateName)
+    console.log('  - category:', category)
+    console.log('  - isEditMode:', isEditMode)
+
+    return () => {
+      console.log(`💥 TemplateEditor unmounting - ID: ${componentIdRef.current}`)
+    }
+  }, [])
+
+  // Debug: Log elements changes
+  useEffect(() => {
+    console.log(`📊 Elements changed - ID: ${componentIdRef.current} - Count:`, elements.length)
+    if (elements.length > 0) {
+      console.log('   Elements:', elements.map(e => ({ id: e.id, type: e.type, x: e.x, y: e.y })))
+    }
+  }, [elements])
+
   // Global error handler for unhandled promise rejections
   useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
@@ -301,9 +323,6 @@ export default function TemplateEditor({
   // Debug: Log cuando cambian los elementos
   useEffect(() => {
     console.log('🔄 Elements state changed:', elements.length, 'elements')
-    elements.forEach((el, idx) => {
-      console.log(`  ${idx + 1}. ${el.type} - ${el.id} - ${el.name || 'Sin nombre'}`)
-    })
   }, [elements])
 
   // Keyboard shortcuts for zoom (similar to ZakekeAdvancedEditor)
@@ -363,14 +382,50 @@ export default function TemplateEditor({
   const [productSides, setProductSides] = useState<any[]>([])
   const [currentSide, setCurrentSide] = useState<string | null>(null)
   const [sideElements, setSideElements] = useState<Record<string, TemplateElement[]>>({})
-  
+
   // Debug: Log cuando cambia productImage
   useEffect(() => {
     console.log('🖼️ Product image changed:', productImage)
   }, [productImage])
+
+  // Debug: Log cuando cambian sideElements
+  useEffect(() => {
+    console.log('🔀 SideElements changed:', Object.keys(sideElements).length, 'sides')
+  }, [sideElements])
+
+  // Debug: Log cuando cambia currentSide
+  useEffect(() => {
+    console.log('🎯 CurrentSide changed:', currentSide)
+  }, [currentSide])
+
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Ref para evitar bucles de sincronización
+  const isUpdatingFromEditor = useRef(false)
+  const lastSyncedElements = useRef<string>('')
+
+  // Sincronizar elements con sideElements[currentSide] cuando cambien
+  useEffect(() => {
+    if (!currentSide) return
+
+    const elementsJson = JSON.stringify(elements)
+
+    // Verificar también que el contenido de sideElements[currentSide] sea diferente
+    const currentSideElementsJson = JSON.stringify(sideElements[currentSide] || [])
+
+    // Solo actualizar si realmente cambió (evitar bucles)
+    if (elementsJson !== lastSyncedElements.current && elementsJson !== currentSideElementsJson) {
+      console.log('📝 Syncing elements to sideElements:', currentSide, elements.length, 'elements')
+      lastSyncedElements.current = elementsJson
+
+      setSideElements(prev => ({
+        ...prev,
+        [currentSide]: elements
+      }))
+    }
+  }, [elements])
 
   // Helper function to get area coordinates similar to ZakekeAdvancedEditor
   const getAreaCoordinates = (printArea: any, sideImage?: string): AbsoluteCoordinates | null => {
@@ -609,7 +664,11 @@ export default function TemplateEditor({
 
   // Cargar datos existentes en modo edición
   useEffect(() => {
-    
+    console.log('📋 Template data loading useEffect triggered')
+    console.log('  - isEditMode:', isEditMode)
+    console.log('  - existingTemplateData:', existingTemplateData ? 'present' : 'null')
+    console.log('  - current elements count:', elements.length)
+
     if (isEditMode && existingTemplateData) {
       try {
         // Cargar elementos desde templateData
@@ -705,10 +764,14 @@ export default function TemplateEditor({
         console.error('❌ Error loading existing template data:', error)
       }
     } else {
-      // Limpiar datos para nueva plantilla
-      console.log('🧹 Clearing data for new template')
-      setElements([])
-      setRestrictions([])
+      // Limpiar datos para nueva plantilla SOLO si hay elementos cargados de antes
+      if (elements.length > 0) {
+        console.log('🧹 Clearing data for new template - had', elements.length, 'elements from previous template')
+        setElements([])
+        setRestrictions([])
+      } else {
+        console.log('✨ New template - elements already empty')
+      }
     }
   }, [isEditMode, existingTemplateData])
 
@@ -1179,6 +1242,10 @@ export default function TemplateEditor({
 
   // Actualizar elementos y guardar en historial
   const updateElementsWithHistory = (newElements: TemplateElement[]) => {
+    console.log('🔧 updateElementsWithHistory called with', newElements.length, 'elements')
+    if (newElements.length === 0) {
+      console.trace('⚠️ Stack trace for empty elements call:')
+    }
     setElements(newElements)
     saveToHistory(newElements)
   }
@@ -1200,17 +1267,25 @@ export default function TemplateEditor({
     }
   }
 
-  const addTextElement = (x: number, y: number) => {
+  const addTextElement = async (x: number, y: number) => {
+    console.log('🟢 addTextElement called with x:', x, 'y:', y)
+    console.log('Current side:', currentSide)
+    console.log('Product sides:', productSides)
+
     // Si se llama sin coordenadas específicas, posicionar en el área activa
     let textX = x, textY = y
-    
+
     if (x === 100 && y === 100) { // Valores por defecto del handleDirectTextAdd
       const currentArea = getCurrentPrintArea()
       const currentSideData = productSides.find(s => s.id === currentSide)
       const sideImage = currentSideData?.image2D
-      
+
+      console.log('Current area:', currentArea)
+      console.log('Current side data:', currentSideData)
+
       if (currentArea) {
         const areaCoords = getAreaCoordinates(currentArea, sideImage)
+        console.log('Area coords:', areaCoords)
         if (areaCoords) {
           // Posicionar texto en el centro del área - aplicar zoom a las coordenadas
           const scaledAreaCoords = {
@@ -1221,24 +1296,30 @@ export default function TemplateEditor({
           }
           textX = scaledAreaCoords.x + scaledAreaCoords.width * 0.1 // 10% margen desde la izquierda
           textY = scaledAreaCoords.y + scaledAreaCoords.height * 0.1 // 10% margen desde arriba
+          console.log('Calculated text position:', textX, textY)
         }
       }
     }
-    
+
     // Calcular dimensiones dinámicas del texto
     const textContent = 'Texto de ejemplo'
     const textFontSize = 16
     const textFontFamily = 'Arial'
     const textFontWeight = 'normal'
-    
-    // Crear elemento con dimensiones temporales y luego actualizarlas
+
+    // Calcular dimensiones reales ANTES de crear el elemento
+    console.log('🔄 Calculating text dimensions...')
+    const calculatedDimensions = await calculateTextDimensions(textContent, textFontSize, textFontFamily, textFontWeight)
+    console.log('📐 Dimensions calculated:', calculatedDimensions)
+
+    // Crear elemento con las dimensiones correctas desde el inicio
     const newElement: TemplateElement = {
       id: `text_${Date.now()}`,
       type: 'text',
       x: textX,
       y: textY,
-      width: 120, // temporal
-      height: 30, // temporal
+      width: calculatedDimensions.width,
+      height: calculatedDimensions.height,
       rotation: 0,
       locked: false,
       visible: true,
@@ -1254,18 +1335,13 @@ export default function TemplateEditor({
       curved: false,
       curveRadius: 50
     }
+    console.log('New element created with correct dimensions:', newElement)
     const newElements = [...elements, newElement]
+    console.log('New elements array:', newElements)
     updateElementsWithHistory(newElements)
     setSelectedElement(newElement.id)
     setTool('select')
-    
-    // Calcular dimensiones reales y actualizar el elemento
-    calculateTextDimensions(textContent, textFontSize, textFontFamily, textFontWeight).then(calculatedDimensions => {
-      updateElement(newElement.id, {
-        width: calculatedDimensions.width,
-        height: calculatedDimensions.height
-      })
-    })
+    console.log('🟢 Element added successfully')
     
     // Si está habilitada la sincronización, agregar a todos los lados
     if (templateSettings.syncElementsAllSides && currentSide) {
@@ -1331,25 +1407,31 @@ export default function TemplateEditor({
 
 
   const updateElement = (id: string, updates: Partial<TemplateElement>) => {
+    console.log('🔧 updateElement called for:', id, 'Current elements count:', elements.length)
+
     const newElements = elements.map(el => {
       if (el.id === id) {
         const updatedElement = { ...el, ...updates }
-        
+
         // Si es un elemento de texto y se han actualizado propiedades que afectan las dimensiones
         if (updatedElement.type === 'text' && (
-          updates.text !== undefined || 
-          updates.fontSize !== undefined || 
-          updates.fontFamily !== undefined || 
+          updates.text !== undefined ||
+          updates.fontSize !== undefined ||
+          updates.fontFamily !== undefined ||
           updates.fontWeight !== undefined
         )) {
           // Recalcular dimensiones automáticamente de forma asíncrona
           if (updates.width === undefined || updates.height === undefined) {
+            console.log('🔄 Scheduling dimension recalculation for:', id)
             calculateTextDimensions(
               updatedElement.text || 'Texto de ejemplo',
               updatedElement.fontSize || 16,
               updatedElement.fontFamily || 'Arial',
               updatedElement.fontWeight || 'normal'
             ).then(calculatedDimensions => {
+              console.log('📐 Dimensions calculated:', calculatedDimensions, 'Updating element:', id)
+              console.log('   Current elements count in callback:', elements.length)
+
               // Crear una segunda actualización solo para las dimensiones
               const dimensionUpdates: Partial<TemplateElement> = {}
               if (updates.width === undefined) {
@@ -1358,21 +1440,28 @@ export default function TemplateEditor({
               if (updates.height === undefined) {
                 dimensionUpdates.height = calculatedDimensions.height
               }
-              
+
               if (Object.keys(dimensionUpdates).length > 0) {
-                const finalElements = elements.map(el => 
-                  el.id === id ? { ...el, ...updates, ...dimensionUpdates } : el
-                )
-                updateElementsWithHistory(finalElements)
+                // IMPORTANT: Use a functional update to get the latest elements state
+                setElements(currentElements => {
+                  console.log('   Mapping over current elements:', currentElements.length)
+                  const finalElements = currentElements.map(el =>
+                    el.id === id ? { ...el, ...updates, ...dimensionUpdates } : el
+                  )
+                  console.log('   Final elements after dimension update:', finalElements.length)
+                  saveToHistory(finalElements)
+                  return finalElements
+                })
               }
             })
           }
         }
-        
+
         return updatedElement
       }
       return el
     })
+    console.log('🔧 updateElement: newElements count:', newElements.length)
     updateElementsWithHistory(newElements)
   }
 
@@ -1562,8 +1651,11 @@ export default function TemplateEditor({
 
   // Funciones de acción directa para el nuevo panel
   const handleDirectTextAdd = () => {
+    console.log('🔵 handleDirectTextAdd called')
+    console.log('Current elements before add:', elements)
     addTextElement(100, 100)
     setActivePanel('')
+    console.log('🔵 handleDirectTextAdd completed')
   }
 
   const handleDirectImageUpload = () => {

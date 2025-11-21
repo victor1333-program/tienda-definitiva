@@ -52,15 +52,7 @@ interface GeneralSettings {
   taxId: string
   vatNumber: string
   registrationNumber: string
-  
-  // Document Settings
-  invoicePrefix: string
-  quotePrefix: string
-  orderPrefix: string
-  nextInvoiceNumber: number
-  nextQuoteNumber: number
-  nextOrderNumber: number
-  
+
   // Regional Settings
   language: string
   timezone: string
@@ -137,15 +129,7 @@ export default function GeneralSettingsPage() {
     taxId: "",
     vatNumber: "",
     registrationNumber: "",
-    
-    // Document Settings
-    invoicePrefix: "INV-",
-    quotePrefix: "PRE-",
-    orderPrefix: "PED-",
-    nextInvoiceNumber: 1000,
-    nextQuoteNumber: 1000,
-    nextOrderNumber: 1000,
-    
+
     // Regional Settings
     language: "es",
     timezone: "Europe/Madrid",
@@ -284,7 +268,6 @@ export default function GeneralSettingsPage() {
   const tabs = [
     { id: 'business', label: 'Información del Negocio', icon: <Store className="w-4 h-4" /> },
     { id: 'contact', label: 'Contacto y Ubicación', icon: <MapPin className="w-4 h-4" /> },
-    { id: 'documents', label: 'Documentos y Numeración', icon: <FileText className="w-4 h-4" /> },
     { id: 'regional', label: 'Configuración Regional', icon: <Globe className="w-4 h-4" /> },
     { id: 'hours', label: 'Horarios de Operación', icon: <Clock className="w-4 h-4" /> },
     { id: 'features', label: 'Características', icon: <CheckCircle className="w-4 h-4" /> }
@@ -597,109 +580,6 @@ export default function GeneralSettingsPage() {
                     onChange={(e) => handleInputChange('country', e.target.value)}
                     placeholder="España"
                   />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Documents Tab */}
-      {activeTab === 'documents' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Prefijos de Documentos</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Prefijo de Facturas
-                </label>
-                <Input
-                  value={settings.invoicePrefix}
-                  onChange={(e) => handleInputChange('invoicePrefix', e.target.value)}
-                  placeholder="INV-"
-                />
-                <p className="text-xs text-gray-500 mt-1">Ejemplo: {settings.invoicePrefix}2024001</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Prefijo de Presupuestos
-                </label>
-                <Input
-                  value={settings.quotePrefix}
-                  onChange={(e) => handleInputChange('quotePrefix', e.target.value)}
-                  placeholder="PRE-"
-                />
-                <p className="text-xs text-gray-500 mt-1">Ejemplo: {settings.quotePrefix}2024001</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Prefijo de Pedidos
-                </label>
-                <Input
-                  value={settings.orderPrefix}
-                  onChange={(e) => handleInputChange('orderPrefix', e.target.value)}
-                  placeholder="PED-"
-                />
-                <p className="text-xs text-gray-500 mt-1">Ejemplo: {settings.orderPrefix}2024001</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Numeración Siguiente</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Siguiente Número de Factura
-                </label>
-                <Input
-                  type="number"
-                  value={settings.nextInvoiceNumber}
-                  onChange={(e) => handleInputChange('nextInvoiceNumber', parseInt(e.target.value))}
-                  min="1"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Siguiente Número de Presupuesto
-                </label>
-                <Input
-                  type="number"
-                  value={settings.nextQuoteNumber}
-                  onChange={(e) => handleInputChange('nextQuoteNumber', parseInt(e.target.value))}
-                  min="1"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Siguiente Número de Pedido
-                </label>
-                <Input
-                  type="number"
-                  value={settings.nextOrderNumber}
-                  onChange={(e) => handleInputChange('nextOrderNumber', parseInt(e.target.value))}
-                  min="1"
-                />
-              </div>
-
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <div className="flex items-start">
-                  <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 mr-2" />
-                  <div>
-                    <p className="text-sm text-yellow-800">
-                      <strong>Atención:</strong> Cambiar estos números puede afectar la secuencia de documentos. 
-                      Solo modifica si sabes lo que estás haciendo.
-                    </p>
-                  </div>
                 </div>
               </div>
             </CardContent>

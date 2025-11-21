@@ -162,11 +162,13 @@ export default function TemplatesPage() {
       })
       if (response.ok) {
         const data = await response.json()
+        console.log('API Response:', data)
         if (data.success) {
+          console.log('Products loaded:', data.products)
           setProductsWithTemplates(data.products || [])
         }
       } else {
-        console.error('Error loading products with templates:', response.statusText)
+        console.error('Error loading products with templates:', response.statusText, response.status)
       }
     } catch (error) {
       console.error('Error loading products with templates:', error)
@@ -176,6 +178,14 @@ export default function TemplatesPage() {
   }
 
   const handleProductClick = (product: ProductWithTemplates) => {
+    console.log('handleProductClick called with product:', {
+      id: product.id,
+      name: product.name,
+      templatesCount: product.templatesCount,
+      activeTemplatesCount: product.activeTemplatesCount,
+      templates: product.templates,
+      templatesLength: product.templates?.length || 0
+    })
     setSelectedProduct(product)
     setTemplates(product.templates)
     setSelectedProductId(product.id)
@@ -194,7 +204,15 @@ export default function TemplatesPage() {
       alert('Por favor completa todos los campos requeridos')
       return
     }
-    
+
+    console.log('🎬 handleCreateTemplate - selectedProduct:', selectedProduct?.id)
+    console.log('🎬 handleCreateTemplate - selectedProductId state:', selectedProductId)
+
+    // Asegurar que selectedProductId esté establecido
+    if (!selectedProductId && selectedProduct) {
+      setSelectedProductId(selectedProduct.id)
+    }
+
     setIsEditMode(false)
     setEditingTemplate(null)
     setShowCreateModal(false)
@@ -998,7 +1016,7 @@ export default function TemplatesPage() {
 
       {/* Create Template Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/35 backdrop-blur-sm z-[100]">
           <div className="bg-white p-3 rounded-xl shadow-2xl w-80 max-w-xs mx-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">Nueva Plantilla</h2>
@@ -1072,7 +1090,7 @@ export default function TemplatesPage() {
 
       {/* Template Preview Modal */}
       {selectedTemplate && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/35 backdrop-blur-sm z-[100]">
           <div className="bg-white p-6 rounded-xl shadow-2xl max-w-lg w-full mx-4 ml-60 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">
@@ -1179,7 +1197,7 @@ export default function TemplatesPage() {
       {/* Template Editor */}
       {showTemplateEditor && (
         <Suspense fallback={
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/35 backdrop-blur-sm flex items-center justify-center z-[100]">
             <div className="bg-white p-6 rounded-lg shadow-lg">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-4"></div>
               <p className="text-gray-600">Cargando editor...</p>
@@ -1280,7 +1298,7 @@ function CategoryManagementModal({
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/35 backdrop-blur-sm z-[100]">
       <div className="bg-white p-6 rounded-xl shadow-2xl max-w-lg w-full mx-4 ml-60 max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Gestión de Categorías</h2>

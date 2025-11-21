@@ -117,12 +117,13 @@ export default function EmailSystemPage() {
       const data = await response.json()
 
       if (response.ok) {
-        toast.success('Configuración guardada exitosamente')
         setHasChanges(false)
         setConnectionStatus(data.connectionTest?.success ? 'success' : 'error')
-        
-        if (!data.connectionTest?.success) {
-          toast.error(`Error de conexión: ${data.connectionTest?.message}`)
+
+        if (data.connectionTest?.success) {
+          toast.success('Configuración guardada y conexión verificada exitosamente')
+        } else {
+          toast.error(`Configuración guardada pero hay un error de conexión: ${data.connectionTest?.message || 'Verifica los datos SMTP'}`)
         }
       } else {
         toast.error(data.error || 'Error al guardar la configuración')
@@ -534,7 +535,7 @@ export default function EmailSystemPage() {
 
       {/* Template View Modal */}
       {showTemplateModal && selectedTemplate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/35 backdrop-blur-sm flex items-center justify-center z-[100]">
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto mx-4">
             <div className="flex items-center justify-between mb-4">
               <div>

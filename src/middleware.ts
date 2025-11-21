@@ -23,6 +23,11 @@ const PUBLIC_API_ROUTES = [
   '/api/contact'
 ]
 
+// Rutas de productos específicas que son públicas
+const PUBLIC_PRODUCT_ROUTES = [
+  '/templates' // Permite /api/products/[id]/templates
+]
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -36,7 +41,11 @@ export async function middleware(request: NextRequest) {
   // Verificar si es una ruta pública (no requiere autenticación)
   const isPublicRoute = PUBLIC_API_ROUTES.some(route => pathname.startsWith(route))
 
-  if (isPublicRoute) {
+  // Verificar si es una ruta de producto específica que es pública
+  const isPublicProductRoute = pathname.startsWith('/api/products/') &&
+    PUBLIC_PRODUCT_ROUTES.some(route => pathname.includes(route))
+
+  if (isPublicRoute || isPublicProductRoute) {
     console.log(`🌐 Ruta pública: ${pathname} - permitiendo acceso sin autenticación`)
     return NextResponse.next()
   }
